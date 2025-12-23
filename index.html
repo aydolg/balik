@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Balık Avı Paneli v5.0</title>
+<title>Balık Avı Paneli - Tam Çalışan</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
@@ -61,11 +61,33 @@ select{
   font-size:16px;
 }
 
-/* Harita */
-#map{height:300px;margin:16px;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+/* Harita - mobilde küçük */
+#map{
+  height:200px;
+  margin:16px;
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+@media (min-width:768px){#map{height:300px}}
 
-/* Kartlar - mobilde dikey */
-.cards{padding:16px;display:flex;flex-direction:column;gap:16px}
+/* Loading */
+#loading{
+  display:none;
+  color:#16a34a;
+  text-align:center;
+  font-size:18px;
+  padding:20px;
+  font-weight:bold;
+}
+
+/* Kartlar */
+.cards{
+  padding:0 16px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
 .card{
   background:#111827;
   border-radius:16px;
@@ -75,7 +97,7 @@ select{
 }
 .card:active{transform:scale(0.98)}
 
-/* Modal - alttan sheet */
+/* Modal */
 .modal{
   position:fixed;
   inset:0;
@@ -87,16 +109,11 @@ select{
 .sheet{
   width:100%;
   max-height:90vh;
-  background:#020617;
+  background:#111827;
   border-radius:24px 24px 0 0;
-  padding:16px;
+  padding:20px;
   overflow-y:auto;
   box-shadow:0 -10px 30px rgba(0,0,0,.5);
-  animation:slideUp .4s ease;
-}
-@keyframes slideUp{
-  from{transform:translateY(100%)}
-  to{transform:translateY(0)}
 }
 .close{
   position:absolute;
@@ -111,9 +128,8 @@ select{
   justify-content:center;
   background:rgba(255,255,255,0.1);
   border-radius:50%;
+  z-index:1001;
 }
-
-/* Modal üst bar */
 .modal-header{
   display:flex;
   justify-content:space-between;
@@ -137,15 +153,15 @@ select{
 .slot{
   padding:10px 16px;
   border-radius:12px;
-  background:#111827;
+  background:#1e293b;
   cursor:pointer;
   font-size:14px;
   min-width:80px;
   text-align:center;
 }
-.slot.active{background:#14532d}
+.slot.active{background:#16a34a}
 
-/* Env grid - mobilde 2 sütun */
+/* Env grid */
 .env-grid{
   display:grid;
   grid-template-columns:repeat(2,1fr);
@@ -153,7 +169,7 @@ select{
   margin:16px 0;
 }
 .env-box{
-  background:#111827;
+  background:#1e293b;
   border-radius:12px;
   padding:12px;
   text-align:center;
@@ -162,13 +178,12 @@ select{
 
 /* Balık kartları */
 .fish{
-  background:#111827;
+  background:#1e293b;
   border-radius:16px;
   padding:16px;
   margin:12px 0;
   box-shadow:0 4px 12px rgba(0,0,0,.3);
 }
-.fish:active{transform:scale(0.98)}
 .fish-head{
   display:flex;
   justify-content:space-between;
@@ -189,25 +204,35 @@ select{
   padding:12px;
   border-radius:12px;
   text-align:center;
-  background:rgba(0,0,0,0.2);
+  background:rgba(0,0,0,0.3);
 }
 
 /* Aydınlık Mod */
 body.light{background:#f8fafc;color:#0f172a}
 body.light header{border-bottom:1px solid #e2e8f0}
 body.light .location-panel{background:#ffffff}
-body.light .card,.env-box,.slot,.fish{background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
-body.light .sheet{background:#ffffff}
+body.light .card{background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+body.light .sheet{background:#f9fafb}
 body.light .modal{background:rgba(0,0,0,0.5)}
 body.light #locationInput{background:rgba(0,0,0,0.1);color:#0f172a;border:1px solid #ccc}
 body.light #locationInput::placeholder{color:#666}
 body.light select{background:#ffffff;color:#0f172a}
 
+/* Gündüz modunda modal içi net */
+body.light .env-box{background:#e0e7ff !important;color:#1e293b !important}
+body.light .fish{background:#fefce8 !important;border:1px solid #e2e8f0 !important}
+body.light .slot{background:#e0e7ff !important;color:#1e293b !important}
+body.light .slot.active{background:#16a34a !important;color:#fff !important}
+body.light .av-comment{background:rgba(34,197,94,0.1) !important;color:#166534 !important}
+body.light .detail{border-top:1px solid #cbd5e1 !important}
+body.light .fish-head, body.light .small, body.light #slotTitle, body.light .timeline .slot{color:#1e293b !important}
+body.light .close{background:rgba(0,0,0,0.1) !important}
+
 /* Tema butonu */
 .theme-toggle{
   position:fixed;
   top:20px;
-  right:20px;
+  right:80px;
   background:rgba(0,0,0,0.5);
   border:none;
   border-radius:50%;
@@ -225,18 +250,14 @@ body.light .theme-toggle{background:rgba(255,255,255,0.7)}
 
 <header>
 <h2>🎣 Balık Avı Paneli</h2>
-<div class="small">Mobil uyumlu + Paylaş butonu + Tema değiştirme + Av yorumu</div>
+<div class="small">Tam çalışan sürüm + Mobil optimize + Premium görünüm</div>
 </header>
 
 <div class="location-panel">
 <input type="text" id="locationInput" placeholder="Şehir/İlçe girin (ör: İstanbul)">
 <div class="select-group">
-<div class="recent-locations" style="flex:1">
 <select id="recentLocations"><option value="">Son Lokasyonlar</option></select>
-</div>
-<div class="date-selector" style="flex:1">
 <select id="dateSelect"></select>
-</div>
 </div>
 <button id="searchButton">Ara</button>
 </div>
