@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Balık Avı Paneli v5.0</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* Karanlık Mod */
+body {
+  margin:0;
+  font-family:system-ui,-apple-system,sans-serif;
+  background:#0b1220;
+  color:#fff;
+  min-height:100vh;
+  transition:background .4s,color .4s;
+}
+header{padding:16px;text-align:center;border-bottom:1px solid #1e293b}
+h2{margin:0;font-size:20px}
+.small{font-size:13px;opacity:.8;margin-top:4px}
+
+/* Arama paneli */
+.location-panel{
+  padding:16px;
+  background:#111827;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+#locationInput{
+  background:rgba(255,255,255,0.15);
+  color:#fff;
+  caret-color:#fff;
+  border:1px solid #444;
+  border-radius:12px;
+  padding:14px;
+  font-size:16px;
+}
+#locationInput::placeholder{color:#aaa}
+#searchButton, .share-button{
+  background:#2563eb;
+  color:#fff;
+  border:none;
+  border-radius:12px;
+  padding:14px;
+  font-size:16px;
+  font-weight:600;
+  cursor:pointer;
+}
+.select-group{
+  display:flex;
+  gap:12px;
+}
+select{
+  flex:1;
+  padding:14px;
+  background:#111827;
+  color:#fff;
+  border:1px solid #444;
+  border-radius:12px;
+  font-size:16px;
+}
+
+/* Harita */
+#map{height:300px;margin:16px;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+
+/* Kartlar - mobilde dikey */
+.cards{padding:16px;display:flex;flex-direction:column;gap:16px}
+.card{
+  background:#111827;
+  border-radius:16px;
+  padding:16px;
+  box-shadow:0 6px 20px rgba(0,0,0,.35);
+  transition:all .3s;
+}
+.card:active{transform:scale(0.98)}
+
+/* Modal - alttan sheet */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  z-index:999;
+  align-items:flex-end;
+}
+.sheet{
+  width:100%;
+  max-height:90vh;
+  background:#020617;
+  border-radius:24px 24px 0 0;
+  padding:16px;
+  overflow-y:auto;
+  box-shadow:0 -10px 30px rgba(0,0,0,.5);
+  animation:slideUp .4s ease;
+}
+@keyframes slideUp{
+  from{transform:translateY(100%)}
+  to{transform:translateY(0)}
+}
+.close{
+  position:absolute;
+  top:16px;
+  right:16px;
+  font-size:28px;
+  cursor:pointer;
+  width:44px;
+  height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(255,255,255,0.1);
+  border-radius:50%;
+}
+
+/* Modal üst bar */
+.modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:16px;
+}
+.share-button{
+  background:rgba(37,99,235,0.2);
+  padding:10px 16px;
+  font-size:14px;
+}
+
+/* Timeline */
+.timeline{
+  display:flex;
+  gap:10px;
+  margin:16px 0;
+  overflow-x:auto;
+  padding-bottom:8px;
+}
+.slot{
+  padding:10px 16px;
+  border-radius:12px;
+  background:#111827;
+  cursor:pointer;
+  font-size:14px;
+  min-width:80px;
+  text-align:center;
+}
+.slot.active{background:#14532d}
+
+/* Env grid - mobilde 2 sütun */
+.env-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+  margin:16px 0;
+}
+.env-box{
+  background:#111827;
+  border-radius:12px;
+  padding:12px;
+  text-align:center;
+  font-size:14px;
+}
+
+/* Balık kartları */
+.fish{
+  background:#111827;
+  border-radius:16px;
+  padding:16px;
+  margin:12px 0;
+  box-shadow:0 4px 12px rgba(0,0,0,.3);
+}
+.fish:active{transform:scale(0.98)}
+.fish-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:18px;
+  font-weight:bold;
+  padding-bottom:10px;
+}
+.detail{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid #2d3748;
+}
+.av-comment{
+  font-size:15px;
+  font-weight:bold;
+  margin:12px 0;
+  padding:12px;
+  border-radius:12px;
+  text-align:center;
+  background:rgba(0,0,0,0.2);
+}
+
+/* Aydınlık Mod */
+body.light{background:#f8fafc;color:#0f172a}
+body.light header{border-bottom:1px solid #e2e8f0}
+body.light .location-panel{background:#ffffff}
+body.light .card,.env-box,.slot,.fish{background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+body.light .sheet{background:#ffffff}
+body.light .modal{background:rgba(0,0,0,0.5)}
+body.light #locationInput{background:rgba(0,0,0,0.1);color:#0f172a;border:1px solid #ccc}
+body.light #locationInput::placeholder{color:#666}
+body.light select{background:#ffffff;color:#0f172a}
+
+/* Tema butonu */
+.theme-toggle{
+  position:fixed;
+  top:20px;
+  right:20px;
+  background:rgba(0,0,0,0.5);
+  border:none;
+  border-radius:50%;
+  width:50px;
+  height:50px;
+  font-size:24px;
+  cursor:pointer;
+  z-index:1000;
+}
+body.light .theme-toggle{background:rgba(255,255,255,0.7)}
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle">🌙</button>
+
+<header>
+<h2>🎣 Balık Avı Paneli</h2>
+<div class="small">Mobil uyumlu + Paylaş butonu + Tema değiştirme + Av yorumu</div>
+</header>
+
+<div class="location-panel">
+<input type="text" id="locationInput" placeholder="Şehir/İlçe girin (ör: İstanbul)">
+<div class="select-group">
+<div class="recent-locations" style="flex:1">
+<select id="recentLocations"><option value="">Son Lokasyonlar</option></select>
+</div>
+<div class="date-selector" style="flex:1">
+<select id="dateSelect"></select>
+</div>
+</div>
+<button id="searchButton">Ara</button>
+</div>
+
+<div id="map"></div>
+<div id="loading">Veriler yükleniyor, lütfen bekleyin...</div>
+<div class="cards" id="cards"></div>
+
+<div class="modal" id="modal">
+ <div class="sheet">
+  <div class="modal-header">
+    <h3 id="slotTitle"></h3>
+    <button class="share-button" id="shareButton">📤 Paylaş</button>
+  </div>
+  <div class="close" onclick="UIModule.closeModal()">✖</div>
+  <div class="timeline" id="timeline"></div>
+  <div class="env-grid" id="envGrid"></div>
+  <div id="fishList"></div>
+ </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Tema Toggle
+const themeToggle = document.getElementById('themeToggle');
+themeToggle.addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  themeToggle.textContent = isLight ? '🌙' : '☀️';
+  localStorage.setItem('fishingTheme', isLight ? 'light' : 'dark');
+});
+
+if (localStorage.getItem('fishingTheme') === 'light') {
+  document.body.classList.add('light');
+  themeToggle.textContent = '🌙';
+}
+
+// Ara butonu
+document.getElementById('searchButton').addEventListener('click', () => {
+  App.searchLocation();
+});
+
+// Paylaş butonu
+document.getElementById('shareButton').addEventListener('click', () => {
+  const title = document.getElementById('slotTitle').textContent;
+  const location = document.getElementById('locationInput').value || App.currentLocationName || "Belirtilen Lokasyon";
+  const date = new Date();
+  date.setDate(date.getDate() + App.currentDateOffset);
+  const formattedDate = date.toLocaleDateString('tr-TR', {weekday: 'long', day: 'numeric', month: 'long'});
+
+  const text = `🎣 Balık Avı Tahmini
+
+📍 ${location}
+📅 ${formattedDate}
+⏰ ${title}
+
+Detaylı tahmin için paneli ziyaret et!`;
+
+  if (navigator.share) {
+    navigator.share({
+      title: 'Balık Avı Tahmini',
+      text: text
+    }).catch(() => {
+      navigator.clipboard.writeText(text).then(() => alert("Paylaşım metni kopyalandı!"));
+    });
+  } else {
+    navigator.clipboard.writeText(text).then(() => alert("Paylaşım metni kopyalandı!"));
+  }
+});
+
+// === App ===
+const App = {
+  currentLat: 39,
+  currentLon: 35,
+  currentDateOffset: 0,
+  currentLocationName: "Türkiye",
+
+  init() {
+    MapModule.init();
+    this.loadRecentLocations();
+    this.populateDateSelect();
+    this.loadLastUsedLocation();
+  },
+
+  populateDateSelect() {
+    const select = document.getElementById('dateSelect');
+    select.innerHTML = '';
+    const today = new Date();
+    for (let i = 0; i < 8; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const option = document.createElement('option');
+      option.value = i;
+      if (i === 0) option.textContent = 'Bugün';
+      else if (i === 1) option.textContent = 'Yarın';
+      else option.textContent = date.toLocaleDateString('tr-TR', {weekday: 'long', day: 'numeric', month: 'long'});
+      select.appendChild(option);
+    }
+    select.value = this.currentDateOffset;
+    select.onchange = () => this.updateForecast();
+  },
+
+  searchLocation() {
+    const query = document.getElementById('locationInput').value.trim();
+    if (!query) return;
+    MapModule.searchLocation(query);
+  },
+
+  updateForecast() {
+    this.currentDateOffset = parseInt(document.getElementById('dateSelect').value);
+    APIModule.fetchData(this.currentLat, this.currentLon, this.currentDateOffset);
+  },
+
+  setLocation(lat, lon, name = "Bilinmeyen Lokasyon") {
+    this.currentLat = lat;
+    this.currentLon = lon;
+    this.currentLocationName = name;
+    this.saveRecentLocation(lat, lon, name);
+    this.updateForecast();
+  },
+
+  saveRecentLocation(lat, lon, name) {
+    let recents = JSON.parse(localStorage.getItem('fishingRecents') || '[]');
+    recents = recents.filter(l => !(Math.abs(l.lat - lat) < 0.01 && Math.abs(l.lon - lon) < 0.01));
+    recents.unshift({lat, lon, name});
+    recents = recents.slice(0, 5);
+    localStorage.setItem('fishingRecents', JSON.stringify(recents));
+    this.loadRecentLocations();
+  },
+
+  loadRecentLocations() {
+    const select = document.getElementById('recentLocations');
+    select.innerHTML = '<option value="">Son Lokasyonlar</option>';
+    const recents = JSON.parse(localStorage.getItem('fishingRecents') || '[]');
+    recents.forEach(loc => {
+      const option = document.createElement('option');
+      option.value = JSON.stringify(loc);
+      option.textContent = loc.name;
+      select.appendChild(option);
+    });
+    select.onchange = (e) => this.loadRecentLocation(e.target.value);
+  },
+
+  loadRecentLocation(value) {
+    if (!value) return;
+    const loc = JSON.parse(value);
+    this.setLocation(loc.lat, loc.lon, loc.name);
+    document.getElementById('locationInput').value = loc.name;
+    MapModule.map.setView([loc.lat, loc.lon], 10);
+    if (MapModule.marker) MapModule.map.removeLayer(MapModule.marker);
+    MapModule.marker = L.marker([loc.lat, loc.lon]).addTo(MapModule.map).bindPopup(loc.name).openPopup();
+  },
+
+  loadLastUsedLocation() {
+    const recents = JSON.parse(localStorage.getItem('fishingRecents') || '[]');
+    if (recents.length > 0) {
+      const last = recents[0];
+      this.setLocation(last.lat, last.lon, last.name);
+      document.getElementById('locationInput').value = last.name;
+    } else {
+      APIModule.fetchData(this.currentLat, this.currentLon, this.currentDateOffset);
+    }
+  }
+};
+
+// === DataModule ===
+const DataModule = {
+  fishes: [
+    {name:"Levrek", seasons:["Kış","İlkbahar"], seaTemp:[10,20], airTemp:[10,20], windRange:[5,25], wave:[0.5,1.5], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GECE", prefersRain:true, takim:"Spinning/at-çek veya dip oltası, 0.25-0.35 mm misina", yem:"Sahte yem (silikon, rapala), karides, boru kurdu, mamun, canlı küçük balık"},
+    {name:"Eşkina", seasons:["Kış","Tüm yıl"], seaTemp:[15,22], airTemp:[10,20], windRange:[0,15], wave:[0,0.5], pressure:"low", moon:["Dolunay"], time:"GECE", prefersRain:true, takim:"Dip oltası, 0.35-0.45 mm misina", yem:"Karides, kalamar, teke, boru kurdu, istavrit fileto"},
+    {name:"Granyoz", seasons:["Yaz","Sonbahar"], seaTemp:[20,28], airTemp:[25,35], windRange:[0,15], wave:[0.3,1], pressure:"stable", moon:["Dolunay"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:"Spinning veya dip oltası, ağır takım", yem:"Canlı balık, kalamar, sahte yem (jig)"},
+    {name:"İzmarit", seasons:["İlkbahar","Yaz"], seaTemp:[15,25], airTemp:[15,25], windRange:[0,15], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"GÜNDÜZ", prefersRain:false, takim:"Şamandıralı, Hafif dip oltası, LRF, 0.15-0.25 mm misina", yem:"Solucan, mamun, midye, ekmek, hamsi"},
+    {name:"İstavrit", seasons:["Sonbahar","Kış"], seaTemp:[12,20], airTemp:[10,20], windRange:[10,30], wave:[0.5,1.5], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"GECE_ALACAKARANLIK", prefersRain:true, takim:"Çapari takımı, Spinning, LRF", yem:"Tüyler, küçük sahte yemler, hamsi"},
+    {name:"İspari", seasons:["Yaz"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,15], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:"Şamandıralı, Hafif dip oltası, LRF, 0.15-0.25 mm misina", yem:"Mamun, boru kurdu, karides, midye, sülünez, silikon, ekmek"},
+    {name:"Sargoz", seasons:["İlkbahar","Yaz"], seaTemp:[15,24], airTemp:[15,28], windRange:[0,20], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:"Şamandıralı, Hafif dip oltası, LRF, 0.15-0.25 mm misina", yem:"Mamun, boru kurdu, karides, midye, sülünez, silikon"},
+    {name:"Karagöz", seasons:["İlkbahar","Sonbahar"], seaTemp:[15,25], airTemp:[15,30], windRange:[0,15], wave:[0,0.6], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:"Şamandıralı, Hafif dip oltası, LRF, 0.15-0.25 mm misina", yem:"Mamun, boru kurdu, karides, midye, sülünez, silikon"},
+    {name:"Zargana", seasons:["Yaz"], seaTemp:[20,28], airTemp:[25,35], windRange:[0,15], wave:[0,0.5], pressure:"stable", moon:["Yeni Ay"], time:"GÜNDÜZ", prefersRain:false, takim:"Şamandıralı olta, Spinning, LRF", yem:"Hamsi - istavrit fileto, tavuk, küçük kaşık, ipek"},
+    {name:"Kefal", seasons:["İlkbahar","Sonbahar"], seaTemp:[10,25], airTemp:[15,25], windRange:[0,15], wave:[0,0.4], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ", prefersRain:true, takim:"Şamandıralı hafif olta", yem:"Ekmek, mamun, boru kurdu, hamsi fileto"},
+    {name:"Kırlangıç", seasons:["Kış","İlkbahar"], seaTemp:[12,20], airTemp:[10,20], windRange:[10,30], wave:[0.3,1], pressure:"low", moon:["Yeni Ay"], time:"GECE", prefersRain:true, takim:"Dip oltası, ağır kurşun", yem:"Karides, küçük balık fileto, kalamar"},
+    {name:"Barbunya", seasons:["Yaz"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,15], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"ALACAKARANLIK", prefersRain:false, takim:"Dip oltası, 0.20-0.30 mm misina", yem:"Solucan, mamun, midye, boru kurdu, Çin kurdu"},
+    {name:"İskorpit", seasons:["Tüm yıl"], seaTemp:[10,25], airTemp:[10,30], windRange:[0,25], wave:[0.5,1.2], pressure:"any", moon:["Dolunay"], time:"KARMA", prefersRain:false, takim:"Dip oltası veya zokalı takım", yem:"İstavrit fileto, karides, tavuk eti, boru kurdu, Çin kurdu"},
+    {name:"Kalkan", seasons:["Kış","İlkbahar"], seaTemp:[8,18], airTemp:[5,20], windRange:[0,15], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"GECE", prefersRain:false, takim:"Dip oltası, ağır takım, 3 iğneli", yem:"İstavrit/küçük balık fileto, hamsi"},
+    {name:"Lüfer", seasons:["Sonbahar","Kış"], seaTemp:[12,22], airTemp:[10,25], windRange:[10,30], wave:[0.8,2], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GECE", prefersRain:true, takim:"Spinning/at-çek, mantarlı dip oltası veya sarkıtmalı zoka, 0.30-0.40 mm misina", yem:"İstavrit, zargana, sardalya, hamsi (canlı/taze), sahte yem (rapala, jig, kaşık)"}
+  ],
+
+  getSeason() {
+    const month = new Date().getMonth() + 1;
+    if ([12,1,2].includes(month)) return "Kış";
+    if ([3,4,5].includes(month)) return "İlkbahar";
+    if ([6,7,8].includes(month)) return "Yaz";
+    return "Sonbahar";
+  },
+
+  getMoonPhase(date = new Date()) {
+    let year = date.getUTCFullYear(), month = date.getUTCMonth() + 1, day = date.getUTCDate();
+    if (month == 1 || month == 2) { year--; month += 12; }
+    let a = Math.floor(year / 100), b = Math.floor(a / 4), c = 2 - a + b;
+    let e = Math.floor(365.25 * (year + 4716)), f = Math.floor(30.6001 * (month + 1));
+    let jd = c + day + e + f - 1524.5;
+    let daysSinceNew = jd - 2451549.5;
+    let newMoons = daysSinceNew / 29.53058867;
+    let phase = (newMoons - Math.floor(newMoons)) * 29.53058867;
+    if (phase < 1.5) return "Yeni Ay";
+    if (phase < 13.5) return "Hilal - İlk Dördün";
+    if (phase < 16.5) return "Dolunay Civarı";
+    return "Son Dördün - Yeni Ay Civarı";
+  },
+
+  getMoonPhaseEmoji(date = new Date()) {
+    let year = date.getUTCFullYear(), month = date.getUTCMonth() + 1, day = date.getUTCDate();
+    if (month == 1 || month == 2) { year--; month += 12; }
+    let a = Math.floor(year / 100), b = Math.floor(a / 4), c = 2 - a + b;
+    let e = Math.floor(365.25 * (year + 4716)), f = Math.floor(30.6001 * (month + 1));
+    let jd = c + day + e + f - 1524.5;
+    let daysSinceNew = jd - 2451549.5;
+    let newMoons = daysSinceNew / 29.53058867;
+    let phase = (newMoons - Math.floor(newMoons)) * 29.53058867;
+
+    if (phase < 1.5) return "🌑";
+    if (phase < 13.5) return "🌓";
+    if (phase < 16.5) return "🌕";
+    return "🌗";
+  }
+};
+
+// === ScoringModule ===
+const ScoringModule = {
+  color(sc) { return sc > 90 ? '#2563eb' : sc > 70 ? '#16a34a' : sc > 50 ? '#f59e0b' : '#dc2626'; },
+
+  gradedRangeScore(value, min, max, fullPoints, tolerance = 0.15) {
+    if (max <= min || fullPoints === 0) return 0;
+    const range = max - min;
+    const innerStart = min + tolerance * range;
+    const innerEnd = max - tolerance * range;
+    if (value >= innerStart && value <= innerEnd) return fullPoints;
+    const lowerHalf = (value >= min - tolerance * range && value < innerStart);
+    const upperHalf = (value > innerEnd && value <= max + tolerance * range);
+    if (lowerHalf || upperHalf) return fullPoints * 0.5;
+    return 0;
+  },
+
+  calculate(fish, env, timeLabel) {
+    let score = 0;
+    const season = DataModule.getSeason();
+    const moon = DataModule.getMoonPhase();
+
+    if (fish.seasons.includes(season) || fish.seasons.includes("Tüm yıl")) score += 20;
+    if (fish.time.includes(timeLabel)) score += 15;
+    if (fish.pressure === "low" && env.pressure < 1013) score += 8;
+    else if (fish.pressure === "stable" && env.pressure >= 1013 && env.pressure <= 1018) score += 8;
+    if (fish.moon.some(m => moon.includes(m))) score += 8;
+
+    if (fish.prefersRain && env.precipProbability > 40) score += 8;
+
+    score += this.gradedRangeScore(env.seaTemp, fish.seaTemp[0], fish.seaTemp[1], 20);
+    score += this.gradedRangeScore(env.airTemp, fish.airTemp[0], fish.airTemp[1], 12);
+    if (fish.wave) score += this.gradedRangeScore(env.wave, fish.wave[0], fish.wave[1], 7);
+    if (fish.windRange) score += this.gradedRangeScore(env.wind, fish.windRange[0], fish.windRange[1], 10);
+
+    return Math.max(0, Math.min(100, Math.round(score)));
+  }
+};
+
+// === APIModule ===
+const APIModule = {
+  slots: [
+    {t:"🕒 06–09", hours:[6,7,8], timeLabel:"ALACAKARANLIK"},
+    {t:"🕒 12–15", hours:[12,13,14], timeLabel:"GÜNDÜZ"},
+    {t:"🕒 18–21", hours:[18,19,20], timeLabel:"ALACAKARANLIK"},
+    {t:"🕒 21–24", hours:[21,22,23], timeLabel:"GECE"}
+  ],
+
+  async fetchData(lat, lon, dayOffset = 0) {
+    document.getElementById('loading').style.display = 'block';
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + dayOffset);
+    const dateStr = targetDate.toISOString().split('T')[0];
+
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,surface_pressure,cloud_cover,precipitation_probability&start_date=${dateStr}&end_date=${dateStr}&timezone=auto`;
+    const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=sea_surface_temperature,wave_height&start_date=${dateStr}&end_date=${dateStr}`;
+
+    try {
+      const [wRes, mRes] = await Promise.all([fetch(weatherUrl), fetch(marineUrl)]);
+      const wData = await wRes.json();
+      const mData = await mRes.json();
+
+      const sunrise = wData.daily.sunrise[0] ? wData.daily.sunrise[0].split('T')[1].slice(0,5) : '—';
+      const sunset = wData.daily.sunset[0] ? wData.daily.sunset[0].split('T')[1].slice(0,5) : '—';
+
+      const hourly = wData.hourly.time.map((t, i) => ({
+        time: new Date(t),
+        airTemp: wData.hourly.temperature_2m[i],
+        wind: wData.hourly.wind_speed_10m[i],
+        windDirDeg: wData.hourly.wind_direction_10m[i],
+        pressure: wData.hourly.surface_pressure[i],
+        cloud: wData.hourly.cloud_cover[i],
+        precipProbability: wData.hourly.precipitation_probability[i] ?? 0,
+        seaTemp: mData.hourly.sea_surface_temperature[i] ?? 18,
+        wave: mData.hourly.wave_height[i] ?? 0.3
+      }));
+
+      this.slots.forEach(slot => {
+        const relevant = hourly.filter(d => slot.hours.includes(d.time.getHours()));
+        if (relevant.length === 0) return;
+        const avg = prop => relevant.reduce((a, d) => a + d[prop], 0) / relevant.length;
+
+        slot.env = {
+          airTemp: Math.round(avg('airTemp')),
+          seaTemp: Math.round(avg('seaTemp')),
+          wind: Math.round(avg('wind')),
+          windDir: this.cardinal(relevant[0].windDirDeg || 0),
+          wave: parseFloat(avg('wave').toFixed(1)),
+          pressure: Math.round(avg('pressure')),
+          weather: (relevant[0].cloud < 30 ? "Açık" : relevant[0].cloud < 70 ? "Bulutlu" : "Kapalı"),
+          precipProbability: Math.round(avg('precipProbability')),
+          selectedDate: targetDate.toLocaleDateString('tr-TR', {weekday: 'long', day: 'numeric', month: 'long'}),
+          sunrise: sunrise,
+          sunset: sunset
+        };
+      });
+
+      UIModule.renderCards();
+    } catch (err) {
+      console.error(err);
+      alert("Veri alınamadı.");
+    } finally {
+      document.getElementById('loading').style.display = 'none';
+    }
+  },
+
+  cardinal(deg) {
+    const dirs = ["K", "KD", "D", "GD", "G", "GB", "B", "KB"];
+    return dirs[Math.round(deg / 45) % 8];
+  }
+};
+
+// === MapModule ===
+const MapModule = {
+  map: null,
+  marker: null,
+
+  init() {
+    this.map = L.map('map').setView([39, 35], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
+    this.map.on('click', e => {
+      this.setMarker(e.latlng);
+      App.setLocation(e.latlng.lat, e.latlng.lng);
+    });
+  },
+
+  setMarker(latlng) {
+    if (this.marker) this.map.removeLayer(this.marker);
+    this.marker = L.marker(latlng).addTo(this.map);
+  },
+
+  async searchLocation(query) {
+    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=tr`);
+    const data = await res.json();
+    if (data.results && data.results[0]) {
+      const {latitude, longitude, name} = data.results[0];
+      this.map.setView([latitude, longitude], 10);
+      this.setMarker({lat: latitude, lng: longitude});
+      this.marker.bindPopup(name).openPopup();
+      App.setLocation(latitude, longitude, name);
+    } else {
+      alert("Lokasyon bulunamadı!");
+    }
+  }
+};
+
+// === UIModule ===
+const UIModule = {
+  renderCards() {
+    const cards = document.getElementById('cards');
+    cards.innerHTML = '';
+    APIModule.slots.forEach((slot, i) => {
+      if (!slot.env) return;
+      const ranked = DataModule.fishes.map(f => ({fish: f, score: ScoringModule.calculate(f, slot.env, slot.timeLabel)})).sort((a, b) => b.score - a.score);
+      const best = ranked[0];
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <b>${slot.t}</b>
+        <div style="margin:6px 0">🐟 ${best.fish.name}</div>
+        <div class="score" style="color:${ScoringModule.color(best.score)}">${best.score}%</div>
+        <div class="env">🌡️ ${slot.env.airTemp}°C • 🌊 ${slot.env.wave} m<br>🌬️ ${slot.env.wind} km/s ${slot.env.windDir} • ⛅ ${slot.env.weather}</div>
+      `;
+      card.onclick = () => this.openModal(i);
+      cards.appendChild(card);
+    });
+  },
+
+  openModal(activeIndex) {
+    document.getElementById('modal').style.display = 'flex';
+    this.buildTimeline(activeIndex);
+  },
+
+  closeModal() {
+    document.getElementById('modal').style.display = 'none';
+  },
+
+  buildTimeline(active) {
+    const timeline = document.getElementById('timeline');
+    timeline.innerHTML = '';
+    APIModule.slots.forEach((slot, i) => {
+      const el = document.createElement('div');
+      el.className = 'slot' + (i === active ? ' active' : '');
+      el.textContent = slot.t;
+      el.onclick = () => this.buildTimeline(i);
+      timeline.appendChild(el);
+      if (i === active) this.renderSlot(slot);
+    });
+  },
+
+  renderSlot(slot) {
+    document.getElementById('slotTitle').textContent = `${slot.t} – ${slot.timeLabel} (${slot.env.selectedDate})`;
+
+    const envGrid = document.getElementById('envGrid');
+    envGrid.innerHTML = `
+      <div class="env-box">⛅<br>${slot.env.weather}</div>
+      <div class="env-box">🌧️ Yağış<br>${slot.env.precipProbability}%</div>
+      <div class="env-box">🌅 Doğum<br>${slot.env.sunrise}</div>
+      <div class="env-box">🌇 Batım<br>${slot.env.sunset}</div>
+      <div class="env-box">🌡️ Hava<br>${slot.env.airTemp}°C</div>
+      <div class="env-box">🌬️ Rüzgar<br>${slot.env.wind} km/s ${slot.env.windDir}</div>
+      <div class="env-box">🌊 Dalga<br>${slot.env.wave} m</div>
+      <div class="env-box">🌡️ Deniz<br>${slot.env.seaTemp}°C</div>
+      <div class="env-box">🌀 Basınç<br>${slot.env.pressure} hPa</div>
+    `;
+
+    const fishList = document.getElementById('fishList');
+    const ranked = DataModule.fishes.map(f => ({fish: f, score: ScoringModule.calculate(f, slot.env, slot.timeLabel)})).sort((a, b) => b.score - a.score);
+
+    fishList.innerHTML = ranked.map(x => {
+      let comment = "", commentColor = "";
+      if (x.score >= 90) {
+        comment = "Bol av bekleniyor! Harika koşullar 🐟🐟🐟";
+        commentColor = "#16a34a";
+      } else if (x.score >= 70) {
+        comment = "İyi av ihtimali yüksek. Şansın açık olsun! 🐟🐟";
+        commentColor = "#16a34a";
+      } else if (x.score >= 50) {
+        comment = "Orta düzeyde aktivite. Sabırlı ol 🐟";
+        commentColor = "#f59e0b";
+      } else if (x.score >= 30) {
+        comment = "Zayıf aktivite. Zor olabilir, ama şansını dene";
+        commentColor = "#f59e0b";
+      } else {
+        comment = "Çok düşük ihtimal. Bugün başka balıklara bak";
+        commentColor = "#dc2626";
+      }
+
+      return `
+        <div class="fish">
+          <div class="fish-head" onclick="this.nextElementSibling.classList.toggle('open')">
+            <b>${x.fish.name}</b><span style="color:${ScoringModule.color(x.score)}">${x.score}%</span>
+          </div>
+          <div class="detail">
+            <div class="bar"><div style="width:${x.score}%;background:${ScoringModule.color(x.score)}"></div></div>
+            <div class="av-comment" style="color:${commentColor};background:rgba(0,0,0,0.2)">${comment}</div>
+            <div class="takim-yem">
+              <span class="takim-icon">🎣👤</span>
+              <span class="small">${x.fish.takim}</span>
+            </div>
+            <div class="takim-yem">
+              <span class="takim-icon">🪱</span>
+              <span class="small">${x.fish.yem}</span>
+            </div>
+            <div class="small">${DataModule.getMoonPhaseEmoji()} Ay evresi: ${DataModule.getMoonPhase()}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+};
+
+// === BAŞLAT ===
+App.init();
+</script>
+</body>
+</html>
