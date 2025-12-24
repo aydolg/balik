@@ -2,12 +2,18 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Balık Avı Paneli - Son Tam Sürüm</title>
+<title>Balık Avı Paneli - Tam Çalışan Son Sürüm</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 body {margin:0;font-family:system-ui,-apple-system,sans-serif;background:#0b1220;color:#fff;min-height:100vh;transition:background .4s,color .4s;position:relative}
-header{padding:16px;text-align:center;border-bottom:1px solid #1e293b;position:relative;z-index:10}
+header{
+  padding:16px;
+  text-align:center;
+  border-bottom:1px solid #1e293b;
+  position:relative;
+  min-height:60px;
+}
 h2{margin:0;font-size:20px}
 .small{font-size:13px;opacity:.8;margin-top:4px}
 .location-panel{padding:16px;background:#111827;display:flex;flex-direction:column;gap:12px}
@@ -45,7 +51,19 @@ select{flex:1;padding:14px;background:#111827;color:#fff;border:1px solid #444;b
 .fish-head{display:flex;justify-content:space-between;align-items:center;font-size:18px;font-weight:bold;padding-bottom:10px}
 .detail{margin-top:12px;padding-top:12px;border-top:1px solid #2d3748}
 .av-comment{font-size:15px;font-weight:bold;margin:12px 0;padding:12px;border-radius:12px;text-align:center;background:rgba(0,0,0,0.3)}
-.theme-toggle{position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.5);border:none;border-radius:50%;width:50px;height:50px;font-size:24px;cursor:pointer;z-index:3000}
+.theme-toggle{
+  position:absolute;
+  top:16px;
+  right:16px;
+  background:rgba(0,0,0,0.5);
+  border:none;
+  border-radius:50%;
+  width:50px;
+  height:50px;
+  font-size:24px;
+  cursor:pointer;
+  z-index:1000;
+}
 body.light .theme-toggle{background:rgba(255,255,255,0.7)}
 body.light{background:#f8fafc;color:#0f172a}
 body.light header{border-bottom:1px solid #e2e8f0}
@@ -62,14 +80,24 @@ body.light .detail{border-top:1px solid #cbd5e1 !important}
 body.light .fish-head,body.light .small,body.light #slotTitle,body.light .timeline .slot{color:#1e293b !important}
 body.light .close{background:rgba(0,0,0,0.1) !important}
 body.light .close:active{background:rgba(0,0,0,0.2) !important}
+
+/* Tablet optimizasyonu */
+@media (min-width: 768px) and (max-width: 1024px) {
+  #map {height:250px}
+  .env-grid {grid-template-columns:repeat(3,1fr);gap:16px}
+  .timeline {gap:16px}
+  .slot {padding:14px 20px;font-size:15px;min-width:100px}
+  .sheet {padding:28px}
+  .card {padding:20px}
+  .modal-top-bar h3 {font-size:20px}
+}
 </style>
 </head>
 <body>
-<button class="theme-toggle" id="themeToggle">🌙</button>
-
 <header>
-<h2>🎣 Balık Avı Paneli</h2>
-<div class="small">Son tam sürüm – Modal düzeltildi + Paylaşımda link</div>
+  <button class="theme-toggle" id="themeToggle">🌙</button>
+  <h2>🎣 Balık Avı Paneli</h2>
+  <div class="small">Tam çalışan son sürüm – Modal ve tema butonu çakışması yok</div>
 </header>
 
 <div class="location-panel">
@@ -89,11 +117,11 @@ body.light .close:active{background:rgba(0,0,0,0.2) !important}
  <div class="sheet">
   <div class="modal-top-bar">
     <div class="modal-actions">
-      <div class="close" onclick="UIModule.closeModal()">✖</div>
+      <button class="share-button" id="shareButton">📤</button>
     </div>
     <h3 id="slotTitle"></h3>
     <div class="modal-actions">
-      <button class="share-button" id="shareButton">📤</button>
+      <div class="close" onclick="UIModule.closeModal()">✖</div>
     </div>
   </div>
   <div class="timeline" id="timeline"></div>
@@ -123,7 +151,7 @@ document.getElementById('searchButton').addEventListener('click', () => {
   App.searchLocation();
 });
 
-// Paylaş butonu - GÜVENİLİR
+// Paylaş butonu
 document.getElementById('shareButton').addEventListener('click', () => {
   const title = document.getElementById('slotTitle').textContent;
   const location = document.getElementById('locationInput').value || App.currentLocationName || "Belirtilen Lokasyon";
@@ -146,10 +174,10 @@ Detaylı tahmin için paneli ziyaret et!
       title: 'Balık Avı Tahmini',
       text: text
     }).catch(() => {
-      navigator.clipboard.writeText(text).then(() => alert("Metin panoya kopyalandı! Yapıştırabilirsin."));
+      navigator.clipboard.writeText(text).then(() => alert("Metin panoya kopyalandı!"));
     });
   } else {
-    navigator.clipboard.writeText(text).then(() => alert("Metin panoya kopyalandı! WhatsApp vs. yapıştır."));
+    navigator.clipboard.writeText(text).then(() => alert("Metin panoya kopyalandı!"));
   }
 });
 
