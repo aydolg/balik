@@ -2,12 +2,12 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Balık Avı Paneli - Tam Çalışan</title>
+<title>Balık Avı Paneli - Son Tam Sürüm</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-body {margin:0;font-family:system-ui,-apple-system,sans-serif;background:#0b1220;color:#fff;min-height:100vh;transition:background .4s,color .4s}
-header{padding:16px;text-align:center;border-bottom:1px solid #1e293b}
+body {margin:0;font-family:system-ui,-apple-system,sans-serif;background:#0b1220;color:#fff;min-height:100vh;transition:background .4s,color .4s;position:relative}
+header{padding:16px;text-align:center;border-bottom:1px solid #1e293b;position:relative;z-index:10}
 h2{margin:0;font-size:20px}
 .small{font-size:13px;opacity:.8;margin-top:4px}
 .location-panel{padding:16px;background:#111827;display:flex;flex-direction:column;gap:12px}
@@ -16,18 +16,23 @@ h2{margin:0;font-size:20px}
 #searchButton,.share-button{background:#2563eb;color:#fff;border:none;border-radius:12px;padding:14px;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s}
 .select-group{display:flex;gap:12px}
 select{flex:1;padding:14px;background:#111827;color:#fff;border:1px solid #444;border-radius:12px;font-size:16px}
-#map{height:200px;margin:16px;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#map{height:200px;margin:16px;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);position:relative;z-index:1}
 @media (min-width:768px){#map{height:300px}}
 #loading{display:none;color:#16a34a;text-align:center;font-size:18px;padding:20px;font-weight:bold}
 .cards{padding:0 16px 16px;display:flex;flex-direction:column;gap:16px}
 .card{background:#111827;border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,.35);transition:all .2s ease;cursor:pointer}
 .card:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 12px 28px rgba(0,0,0,.45);background:#1e293b}
 .card:active{transform:scale(0.96)}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:999;align-items:flex-end}
-.sheet{width:100%;max-height:90vh;background:#111827;border-radius:24px 24px 0 0;padding:20px;overflow-y:auto;box-shadow:0 -10px 30px rgba(0,0,0,.5)}
-.close{position:absolute;top:16px;right:16px;font-size:28px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.1);border-radius:50%;z-index:1001;transition:all .2s}
-.close:active{transform:scale(0.9)}
-.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;z-index:2000;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-height:90vh;background:#111827;border-radius:24px 24px 0 0;padding:20px;overflow-y:auto;box-shadow:0 -20px 40px rgba(0,0,0,.6);position:relative;z-index:2001}
+.modal-top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;position:relative}
+.modal-top-bar h3{margin:0;flex:1;text-align:center;font-size:18px}
+.modal-actions{display:flex;gap:12px;align-items:center}
+.close,.share-button{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;transition:all .2s}
+.close{background:rgba(255,255,255,0.1)}
+.close:active{transform:scale(0.9);background:rgba(255,255,255,0.2)}
+.share-button{background:#2563eb}
+.share-button:active{transform:scale(0.9)}
 .timeline{display:flex;gap:10px;margin:16px 0;overflow-x:auto;padding-bottom:8px}
 .slot{padding:10px 16px;border-radius:12px;background:#1e293b;cursor:pointer;font-size:14px;min-width:80px;text-align:center;transition:all .2s}
 .slot:hover{transform:scale(1.05);background:#2d3748}
@@ -40,14 +45,13 @@ select{flex:1;padding:14px;background:#111827;color:#fff;border:1px solid #444;b
 .fish-head{display:flex;justify-content:space-between;align-items:center;font-size:18px;font-weight:bold;padding-bottom:10px}
 .detail{margin-top:12px;padding-top:12px;border-top:1px solid #2d3748}
 .av-comment{font-size:15px;font-weight:bold;margin:12px 0;padding:12px;border-radius:12px;text-align:center;background:rgba(0,0,0,0.3)}
-.theme-toggle{position:fixed;top:20px;right:80px;background:rgba(0,0,0,0.5);border:none;border-radius:50%;width:50px;height:50px;font-size:24px;cursor:pointer;z-index:1000}
+.theme-toggle{position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.5);border:none;border-radius:50%;width:50px;height:50px;font-size:24px;cursor:pointer;z-index:3000}
 body.light .theme-toggle{background:rgba(255,255,255,0.7)}
 body.light{background:#f8fafc;color:#0f172a}
 body.light header{border-bottom:1px solid #e2e8f0}
 body.light .location-panel{background:#ffffff}
 body.light .card{background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
-body.light .card:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 12px 28px rgba(0,0,0,0.15);background:#f1f5f9}
-body.light .card:active{transform:scale(0.96)}
+body.light .card:hover{background:#f1f5f9}
 body.light .sheet{background:#f9fafb}
 body.light .env-box{background:#e0e7ff !important;color:#1e293b !important}
 body.light .fish{background:#fefce8 !important;border:1px solid #e2e8f0 !important}
@@ -65,7 +69,7 @@ body.light .close:active{background:rgba(0,0,0,0.2) !important}
 
 <header>
 <h2>🎣 Balık Avı Paneli</h2>
-<div class="small">Tam çalışan + Paylaşımda link + Mobil dokunma efekti</div>
+<div class="small">Son tam sürüm – Modal düzeltildi + Paylaşımda link</div>
 </header>
 
 <div class="location-panel">
@@ -83,11 +87,15 @@ body.light .close:active{background:rgba(0,0,0,0.2) !important}
 
 <div class="modal" id="modal">
  <div class="sheet">
-  <div class="modal-header">
+  <div class="modal-top-bar">
+    <div class="modal-actions">
+      <div class="close" onclick="UIModule.closeModal()">✖</div>
+    </div>
     <h3 id="slotTitle"></h3>
-    <button class="share-button" id="shareButton">📤 Paylaş</button>
+    <div class="modal-actions">
+      <button class="share-button" id="shareButton">📤</button>
+    </div>
   </div>
-  <div class="close" onclick="UIModule.closeModal()">✖</div>
   <div class="timeline" id="timeline"></div>
   <div class="env-grid" id="envGrid"></div>
   <div id="fishList"></div>
@@ -115,7 +123,7 @@ document.getElementById('searchButton').addEventListener('click', () => {
   App.searchLocation();
 });
 
-// Paylaş butonu - GÜVENİLİR VERSİYON
+// Paylaş butonu - GÜVENİLİR
 document.getElementById('shareButton').addEventListener('click', () => {
   const title = document.getElementById('slotTitle').textContent;
   const location = document.getElementById('locationInput').value || App.currentLocationName || "Belirtilen Lokasyon";
@@ -138,16 +146,10 @@ Detaylı tahmin için paneli ziyaret et!
       title: 'Balık Avı Tahmini',
       text: text
     }).catch(() => {
-      navigator.clipboard.writeText(text).then(() => {
-        alert("Paylaşım desteklenmiyor – metin panoya kopyalandı! Yapıştırabilirsin.");
-      });
+      navigator.clipboard.writeText(text).then(() => alert("Metin panoya kopyalandı! Yapıştırabilirsin."));
     });
   } else {
-    navigator.clipboard.writeText(text).then(() => {
-      alert("Metin panoya kopyalandı! WhatsApp, Twitter vs. yapıştır.");
-    }).catch(() => {
-      alert("Kopyalama başarısız. Metni manuel kopyala:\n\n" + text);
-    });
+    navigator.clipboard.writeText(text).then(() => alert("Metin panoya kopyalandı! WhatsApp vs. yapıştır."));
   }
 });
 
