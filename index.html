@@ -34,43 +34,28 @@
     --toast-bg: #111827;
     --toast-fg: #ffffff;
     --toast-error: #ef4444;
+
+    /* Geolokasyon ikon ince ayarları */
+    --locate-size: 26px;
+    --locate-bg: rgba(255,255,255,0.12);
+    --locate-ring: rgba(37,99,235,0.6);
+
+    /* Sağ üstte tema menüsü için yer */
+    --toolbar-w: 120px;
   }
   body.light{
-    --bg: #f8fafc;
-    --fg: #0f172a;
-    --panel: #ffffff;
-    --border: #e2e8f0;
-    --card: #ffffff;
-    --chip: #e0e7ff;
-    --accent: #2563eb;
-    --muted: #1e293b;
-    --region-bg: #f1f5f9;
-    --region-bd: #cbd5e1;
-    --toast-bg: #ffffff;
-    --toast-fg: #0f172a;
-    --toast-error: #dc2626;
+    --bg: #f8fafc; --fg: #0f172a; --panel: #ffffff; --border: #e2e8f0; --card: #ffffff; --chip: #e0e7ff;
+    --accent: #2563eb; --muted: #1e293b; --region-bg: #f1f5f9; --region-bd: #cbd5e1;
+    --toast-bg: #ffffff; --toast-fg: #0f172a; --toast-error: #dc2626;
+    --locate-bg: rgba(15,23,42,0.08); --locate-ring: rgba(37,99,235,0.45);
   }
   body.ocean{
-    --bg: #06151f;
-    --fg: #e6f7ff;
-    --panel: #0a1f2b;
-    --border: #0f2f42;
-    --card: #0c2433;
-    --chip: #113a50;
-    --accent: #00a0d2;
-    --muted: #bfe9ff;
-    --region-bg: #0e2b3d;
-    --region-bd: #13506b;
+    --bg: #06151f; --fg: #e6f7ff; --panel: #0a1f2b; --border: #0f2f42; --card: #0c2433; --chip: #113a50;
+    --accent: #00a0d2; --muted: #bfe9ff; --region-bg: #0e2b3d; --region-bd: #13506b;
   }
   body.forest{
-    --bg: #0c1610;
-    --fg: #eaffea;
-    --panel: #132218;
-    --border: #1a2f21;
-    --card: #1a2c22;
-    --chip: #224033;
-    --accent: #22c55e;
-    --muted: #caffc9;
+    --bg: #0c1610; --fg: #eaffea; --panel: #132218; --border: #1a2f21; --card: #1a2c22; --chip: #224033;
+    --accent: #22c55e; --muted: #caffc9; --region-bg: #1b3528; --region-bd: #2a5a44;
   }
 
   html, body { height: 100%; }
@@ -83,17 +68,53 @@
   header{
     padding:16px; text-align:center; border-bottom:1px solid var(--border);
     position:relative; min-height:60px; display:flex; flex-direction:column; gap:8px; align-items:center;
+    padding-right: var(--toolbar-w);
   }
-  h2{margin:0;font-size:22px; display:flex; align-items:center; gap:8px;}
+  h2{margin:0;font-size:22px;}
 
-  /* Toolbar: sadece tema seçici */
+  /* Sağ üst ⚙️ menü (kompakt) */
   .toolbar{
-    position:absolute; top:12px; right:12px; display:flex; gap:8px; align-items:center;
+    position:absolute; top:8px; right:8px; display:flex; align-items:center; z-index:5;
   }
-  .theme-select{
+  .icon-btn{
     background:var(--panel); color:var(--fg); border:1px solid var(--border);
-    border-radius:10px; padding:8px 10px; font-size:14px; cursor:pointer;
+    padding:6px 8px; border-radius:10px; cursor:pointer; font-size:16px; line-height:1;
+    display:inline-flex; align-items:center; gap:6px;
   }
+  .icon-btn:active{ transform: scale(0.95); }
+  .menu{
+    position:absolute; top:40px; right:8px; background:var(--panel); color:var(--fg);
+    border:1px solid var(--border); border-radius:12px; padding:8px; min-width:180px; box-shadow:0 12px 24px rgba(0,0,0,.35);
+    display:none;
+  }
+  .menu.open{ display:block; }
+  .menu h4{ margin:6px 8px 8px; font-size:13px; opacity:.85; }
+  .menu .opt{ display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; cursor:pointer; }
+  .menu .opt:hover{ background:rgba(255,255,255,0.08); }
+
+  @media (max-width:767px){
+    .icon-btn{ padding:5px 7px; font-size:14px; border-radius:8px; }
+    .menu{ min-width:160px; top:36px; }
+    :root{ --toolbar-w: 128px; }
+  }
+
+  /* Bölge satırı: geolokasyon ikonu solda, rozet sağda */
+  .region-row{ display:inline-flex; align-items:center; gap:10px; }
+
+  /* Geolokasyon ikonu (rozet DIŞINDA sol taraf) */
+  .locate-icon{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:var(--locate-size); height:var(--locate-size); border-radius:50%;
+    background:var(--locate-bg); border:1px solid var(--border);
+    cursor:pointer; transition:transform .2s, box-shadow .2s, background .2s; position:relative;
+  }
+  .locate-icon:hover{ transform:scale(1.08); box-shadow:0 0 0 3px rgba(37,99,235,.35); background:rgba(255,255,255,0.18); }
+  .locate-icon:active{ transform:scale(0.95); }
+  .locate-icon::after{
+    content:""; position:absolute; inset:-6px; border-radius:50%;
+    box-shadow:0 0 0 0 var(--locate-ring); animation:pulse 2.2s infinite;
+  }
+  @keyframes pulse{ 0%{ box-shadow:0 0 0 0 var(--locate-ring);} 70%{ box-shadow:0 0 0 12px rgba(37,99,235,0);} 100%{ box-shadow:0 0 0 0 rgba(37,99,235,0);} }
 
   /* Bölge rozeti (tıklanabilir) */
   .region-inline{
@@ -107,38 +128,9 @@
   .region-inline:active{ transform: scale(0.98); }
   .region-inline:focus{ outline:none; box-shadow:0 0 0 3px rgba(37,99,235,.35); }
 
-  /* Rozet içi yerleşim: [📍 konum ikonu] [bölge] [şehir] */
-  .region-layout{
-    display:inline-flex; align-items:center; gap:10px;
-  }
-  .region-text{
-    display:inline-flex; align-items:center; gap:6px;
-  }
+  .region-text{ display:inline-flex; align-items:center; gap:6px; }
   .region-chip{ font-weight:700; }
   .city-chip{ opacity:.95; }
-
-  /* Rozet içindeki konum ikonu (tıklanabilir ve animasyonlu) */
-  .locate-icon{
-    display:inline-flex; align-items:center; justify-content:center;
-    width:24px; height:24px; border-radius:50%;
-    background:rgba(255,255,255,0.12); border:1px solid var(--border);
-    cursor:pointer; transition:transform .2s, box-shadow .2s, background .2s;
-    position:relative;
-  }
-  .locate-icon:hover{ transform:scale(1.08); box-shadow:0 0 0 3px rgba(37,99,235,.35); background:rgba(255,255,255,0.18); }
-  .locate-icon:active{ transform:scale(0.95); }
-  .locate-icon::after{
-    content:"";
-    position:absolute; inset:-6px;
-    border-radius:50%;
-    box-shadow:0 0 0 0 rgba(37,99,235,0.6);
-    animation:pulse 2.2s infinite;
-  }
-  @keyframes pulse{
-    0%{ box-shadow:0 0 0 0 rgba(37,99,235,0.6); }
-    70%{ box-shadow:0 0 0 12px rgba(37,99,235,0); }
-    100%{ box-shadow:0 0 0 0 rgba(37,99,235,0); }
-  }
 
   .location-panel{padding:16px;background:var(--panel);display:flex;flex-direction:column;gap:12px}
   .search-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
@@ -214,8 +206,11 @@
   .slot:hover{transform:scale(1.05)}
   .slot:active{transform:scale(0.95)}
   .slot.active{background:var(--accent);color:#fff;border-color:transparent}
+
+  /* 🧱 Env grid: mobil 2 sütun, tablet/desktop 3 sütun */
   .env-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:16px 0}
-  @media (min-width:768px) and (max-width:1024px){.env-grid{grid-template-columns:repeat(3,1fr);gap:16px}}
+  @media (min-width:600px){ .env-grid{grid-template-columns:repeat(3,1fr);gap:14px} }
+  @media (min-width:1024px){ .env-grid{grid-template-columns:repeat(3,1fr);gap:16px} }
   .env-box{background:var(--chip);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;font-size:14px;color:var(--fg)}
 
   .fish{background:var(--chip);border:1px solid var(--border);border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s;color:var(--fg)}
@@ -252,35 +247,34 @@
     border-radius:999px; border:1px solid rgba(255,255,255,.15);
     display:flex; align-items:center; gap:6px;
   }
-  .scroll-hint .chev{
-    animation:bounce 1.2s infinite;
-  }
-  @keyframes bounce{
-    0%,100%{ transform:translateY(0); }
-    50%{ transform:translateY(4px); }
-  }
-  @media (max-width:767px){
-    .scroll-hint{ display:block; }
-  }
+  .scroll-hint .chev{ animation:bounce 1.2s infinite; }
+  @keyframes bounce{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(4px);} }
+  @media (max-width:767px){ .scroll-hint{ display:block; } }
 </style>
 </head>
 <body class="">
 <header>
+  <!-- ⚙️ Dişli menü (tema seçimi) -->
   <div class="toolbar">
-    <!-- Tema seçici -->
-    <select id="themeSelect" class="theme-select" aria-label="Tema seçimi">
-      <option value="">Koyu</option>
-      <option value="light">Açık</option>
-      <option value="ocean">Okyanus</option>
-      <option value="forest">Orman</option>
-    </select>
+    <button id="themeButton" class="icon-btn" aria-haspopup="true" aria-expanded="false" aria-controls="themeMenu" title="Tema">
+      ⚙️ <span class="sr-only">Tema</span>
+    </button>
+    <div id="themeMenu" class="menu" role="menu" aria-label="Tema seçenekleri">
+      <h4>Tema</h4>
+      <label class="opt" role="menuitemradio" aria-checked="false"><input type="radio" name="theme" value=""> Koyu</label>
+      <label class="opt" role="menuitemradio" aria-checked="false"><input type="radio" name="theme" value="light"> Açık</label>
+      <label class="opt" role="menuitemradio" aria-checked="false"><input type="radio" name="theme" value="ocean"> Okyanus</label>
+      <label class="opt" role="menuitemradio" aria-checked="false"><input type="radio" name="theme" value="forest"> Orman</label>
+    </div>
   </div>
+
   <h2>🎣 Balık Avı Paneli</h2>
 
-  <!-- 📍 Bölge rozeti: [ikon] [Batı Karadeniz] – [Amasra] -->
-  <div class="region-inline" id="regionInline" role="button" tabindex="0" aria-label="Mevcut konuma git">
-    <div class="region-layout">
-      <span id="regionLocateIcon" class="locate-icon" role="button" aria-label="Konumumu kullan" title="Konumumu kullan">📍</span>
+  <!-- 📍 Sol geolokasyon ikonu + sağda bölge rozeti -->
+  <div class="region-row">
+    <span id="regionLocateIcon" class="locate-icon" role="button" aria-label="Konumumu kullan" title="Konumumu kullan">📍</span>
+
+    <div class="region-inline" id="regionInline" role="button" tabindex="0" aria-label="Mevcut konuma git">
       <span class="region-text">
         <span id="regionName" class="region-chip">Batı Karadeniz</span>
         <span>–</span>
@@ -300,7 +294,6 @@
     </select>
 
     <select id="dateSelect" aria-label="Tarih seçimi"></select>
-
     <button id="searchButton" class="btn-search" aria-label="Ara">Ara</button>
   </div>
 </div>
@@ -308,8 +301,8 @@
 <div id="map"></div>
 <div id="loading" role="status" aria-live="polite">Veriler yükleniyor, lütfen bekleyin...</div>
 
-<!-- 📱 Mobil scroll ipucu konteyner -->
 <div class="cards" id="cards">
+  <!-- 📱 Mobil scroll ipucu -->
   <div class="scroll-hint" id="scrollHint">
     <div class="fade"></div>
     <div class="msg">Aşağı kaydırın <span class="chev">⬇️</span></div>
@@ -319,13 +312,9 @@
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="slotTitle">
   <div class="sheet" tabindex="-1" id="modalSheet">
     <div class="modal-top-bar">
-      <div class="modal-actions">
-        <button class="share-button" id="shareButton" aria-label="Paneli paylaş">📤</button>
-      </div>
+      <div class="modal-actions"><button class="share-button" id="shareButton" aria-label="Paneli paylaş">📤</button></div>
       <h3 id="slotTitle"></h3>
-      <div class="modal-actions">
-        <div class="close" id="modalClose" aria-label="Kapat" role="button">✖</div>
-      </div>
+      <div class="modal-actions"><div class="close" id="modalClose" aria-label="Kapat" role="button">✖</div></div>
     </div>
     <div class="timeline" id="timeline"></div>
     <div class="env-grid" id="envGrid"></div>
@@ -339,370 +328,283 @@
 <script>
 /* === Yardımcılar === */
 function pad2(n){ return String(n).padStart(2,'0'); }
-function fishIconCount(score){
-  if (score >= 90) return 5;
-  if (score >= 80) return 4;
-  if (score >= 60) return 3;
-  if (score >= 40) return 2;
-  if (score >= 20) return 1;
-  return 0;
-}
+function fishIconCount(score){ if (score>=90) return 5; if (score>=80) return 4; if (score>=60) return 3; if (score>=40) return 2; if (score>=20) return 1; return 0; }
 function fishIcons(score){ return '🐟'.repeat(fishIconCount(score)); }
-function escapeHTML(s){
-  if (s == null) return '';
-  return String(s)
-    .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
-    .replaceAll('"','&quot;').replaceAll("'",'&#39;');
-}
-function showToast(msg, type='info'){
-  const el = document.createElement('div');
-  el.className = 'toast' + (type==='error' ? ' error' : '');
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(()=>{ el.remove(); }, 3000);
-}
-function buildThreeHourSlots() {
-  const make = (startHour) => ({
-    t: `${pad2(startHour)}:00 - ${pad2(startHour + 3)}:00`,
-    hours: [startHour, startHour + 1, startHour + 2],
-    timeLabel: "GÜNDÜZ"
-  });
-  return [ make(0), make(3), make(6), make(9), make(12), make(15), make(18), make(21) ];
-}
-function labelBySunClock(hour, sunriseStr, sunsetStr) {
-  const toMin = s => { const [H,M] = String(s||'06:00').split(':').map(Number); return H*60 + M; };
-  const hMin = hour*60;
-  const sr = sunriseStr ? toMin(sunriseStr) : 6*60;
-  const ss = sunsetStr ? toMin(sunsetStr) : 18*60;
-  const twilightWindow = 60;
-  if (hMin < sr - twilightWindow || hMin > ss + twilightWindow) return "GECE";
-  if (Math.abs(hMin - sr) <= twilightWindow || Math.abs(hMin - ss) <= twilightWindow) return "ALACAKARANLIK";
-  return "GÜNDÜZ";
-}
+function escapeHTML(s){ if (s==null) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
+function showToast(msg, type='info'){ const el=document.createElement('div'); el.className='toast'+(type==='error'?' error':''); el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),3000); }
+const debounce=(fn,wait=250)=>{ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args),wait); }; };
+function buildThreeHourSlots(){ const make=(s)=>({ t:`${pad2(s)}:00 - ${pad2(s+3)}:00`, hours:[s,s+1,s+2], timeLabel:"GÜNDÜZ" }); return [make(0),make(3),make(6),make(9),make(12),make(15),make(18),make(21)]; }
+function labelBySunClock(hour, sunriseStr, sunsetStr){ const toMin=s=>{ const [H,M]=String(s||'06:00').split(':').map(Number); return H*60+M; }; const hMin=hour*60; const sr=sunriseStr?toMin(sunriseStr):360; const ss=sunsetStr?toMin(sunsetStr):1080; const tw=60; if(hMin<sr-tw||hMin>ss+tw) return "GECE"; if(Math.abs(hMin-sr)<=tw||Math.abs(hMin-ss)<=tw) return "ALACAKARANLIK"; return "GÜNDÜZ"; }
 
-/* === Tema yönetimi === */
-const themeSelect = document.getElementById('themeSelect');
+/* === Tema menüsü (⚙️) === */
+const themeButton=document.getElementById('themeButton');
+const themeMenu=document.getElementById('themeMenu');
 function applyThemeClass(cls){
   document.body.classList.remove('light','ocean','forest');
   if (cls) document.body.classList.add(cls);
   localStorage.setItem('fishingThemeClass', cls || '');
 }
 (function initTheme(){
-  const saved = localStorage.getItem('fishingThemeClass') || '';
-  themeSelect.value = saved;
+  const saved=localStorage.getItem('fishingThemeClass')||'';
   applyThemeClass(saved);
+  // Menu radios sync
+  [...themeMenu.querySelectorAll('input[name="theme"]')].forEach(r=>{ r.checked = (r.value===saved); r.parentElement.setAttribute('aria-checked', r.checked?'true':'false'); });
 })();
-themeSelect.addEventListener('change', (e)=> applyThemeClass(e.target.value));
-
-/* === Debounce === */
-const debounce = (fn, wait=250) => { let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); }; };
+themeButton.addEventListener('click', ()=>{
+  const open=themeMenu.classList.toggle('open');
+  themeButton.setAttribute('aria-expanded', open?'true':'false');
+});
+document.addEventListener('click',(e)=>{ if(!themeMenu.contains(e.target) && e.target!==themeButton){ themeMenu.classList.remove('open'); themeButton.setAttribute('aria-expanded','false'); }});
+document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'){ themeMenu.classList.remove('open'); themeButton.setAttribute('aria-expanded','false'); }});
+themeMenu.addEventListener('change',(e)=>{
+  if(e.target.name==='theme'){
+    const val=e.target.value;
+    applyThemeClass(val);
+    // update aria-checked
+    [...themeMenu.querySelectorAll('.opt')].forEach(l=>l.setAttribute('aria-checked','false'));
+    e.target.parentElement.setAttribute('aria-checked','true');
+  }
+});
 
 /* === Region === */
-const RegionModule = {
-  textMap: { "Batı":"Batı Karadeniz", "Orta":"Orta Karadeniz", "Doğu":"Doğu Karadeniz" },
-  getRegion(lat, lon){ if (lon < 35.5) return "Batı"; if (lon < 38.2) return "Orta"; return "Doğu"; },
+const RegionModule={
+  textMap:{ "Batı":"Batı Karadeniz", "Orta":"Orta Karadeniz", "Doğu":"Doğu Karadeniz" },
+  getRegion(lat,lon){ if(lon<35.5) return "Batı"; if(lon<38.2) return "Orta"; return "Doğu"; },
   updateInline(cityText){
-    const regionText = this.textMap[App.currentRegion] || "—";
-    document.getElementById('regionName').textContent = regionText;
-    document.getElementById('cityName').textContent = cityText || '—';
+    const regionText=this.textMap[App.currentRegion]||"—";
+    document.getElementById('regionName').textContent=regionText;
+    document.getElementById('cityName').textContent=cityText||'—';
   }
 };
 
 /* === App === */
-const App = {
-  currentLat: 41.65, currentLon: 32.38, currentDateOffset: 0, currentLocationName: "Amasra", currentRegion: "Batı",
-
-  init() {
-    this.currentRegion = RegionModule.getRegion(this.currentLat, this.currentLon);
+const App={
+  currentLat:41.65, currentLon:32.38, currentDateOffset:0, currentLocationName:"Amasra", currentRegion:"Batı",
+  init(){
+    this.currentRegion=RegionModule.getRegion(this.currentLat,this.currentLon);
     RegionModule.updateInline(this.currentLocationName);
     MapModule.init();
     this.loadRecentLocations();
     this.populateDateSelect();
     this.loadLastUsedLocation();
     this.bindSearchSuggestions();
-    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') UIModule.closeModal(); });
+    document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') UIModule.closeModal(); });
     sizeLayout();
     setupModalInteractions();
-    setupRegionInline();       // Rozete tıklayınca mevcut konuma odakla
-    setupRegionLocateIcon();   // Rozet içindeki 📍 ikon ile geolokasyon al
-    setupScrollHint();         // Mobil scroll ipucu
+    setupRegionInline();
+    setupRegionLocateIcon();
+    setupScrollHint();
   },
-
-  populateDateSelect() {
-    const select = document.getElementById('dateSelect'); select.innerHTML = '';
-    const today = new Date();
-    for (let i = 0; i < 8; i++) {
-      const d = new Date(today); d.setDate(today.getDate() + i);
-      const opt = document.createElement('option'); opt.value = i;
-      opt.textContent = i===0 ? 'Bugün' : i===1 ? 'Yarın' : d.toLocaleDateString('tr-TR',{weekday:'long', day:'numeric', month:'long'});
+  populateDateSelect(){
+    const select=document.getElementById('dateSelect'); select.innerHTML='';
+    const today=new Date();
+    for(let i=0;i<8;i++){
+      const d=new Date(today); d.setDate(today.getDate()+i);
+      const opt=document.createElement('option'); opt.value=i;
+      opt.textContent = i===0?'Bugün': i===1?'Yarın': d.toLocaleDateString('tr-TR',{weekday:'long', day:'numeric', month:'long'});
       select.appendChild(opt);
     }
-    select.value = this.currentDateOffset;
-    select.onchange = () => this.updateForecast();
+    select.value=this.currentDateOffset;
+    select.onchange=()=>this.updateForecast();
   },
-
   bindSearchSuggestions(){
-    const input = document.getElementById('locationInput');
-    const datalist = document.getElementById('locationSuggestions');
+    const input=document.getElementById('locationInput');
+    const datalist=document.getElementById('locationSuggestions');
     input.addEventListener('input', debounce(async (e)=>{
-      const q = e.target.value.trim(); if(!q){ datalist.innerHTML=''; return; }
+      const q=e.target.value.trim(); if(!q){ datalist.innerHTML=''; return; }
       try{
-        const res = await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=tr`, 12000);
-        const data = await res.json();
-        datalist.innerHTML = '';
+        const res=await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=tr`,12000);
+        const data=await res.json();
+        datalist.innerHTML='';
         (data.results||[]).slice(0,5).forEach(r=>{
-          const opt = document.createElement('option');
-          opt.value = `${r.name}${r.country_code ? ' ('+r.country_code+')' : ''}`;
+          const opt=document.createElement('option');
+          opt.value=`${r.name}${r.country_code?' ('+r.country_code+')':''}`;
           datalist.appendChild(opt);
         });
-      }catch(err){ /* sessiz */ }
-    }, 300));
+      }catch(err){/* sessiz */}
+    },300));
   },
-
-  searchLocation(){ const q = document.getElementById('locationInput').value.trim(); if(!q) return; MapModule.searchLocation(q); },
-
-  updateForecast(){ this.currentDateOffset = parseInt(document.getElementById('dateSelect').value); APIModule.fetchData(this.currentLat, this.currentLon, this.currentDateOffset); },
-
-  setLocation(lat, lon, name="Seçilen Konum"){
-    this.currentLat = lat; this.currentLon = lon; this.currentLocationName = name;
-    this.currentRegion = RegionModule.getRegion(lat, lon);
+  searchLocation(){ const q=document.getElementById('locationInput').value.trim(); if(!q) return; MapModule.searchLocation(q); },
+  updateForecast(){ this.currentDateOffset=parseInt(document.getElementById('dateSelect').value); APIModule.fetchData(this.currentLat,this.currentLon,this.currentDateOffset); },
+  setLocation(lat,lon,name="Seçilen Konum"){
+    this.currentLat=lat; this.currentLon=lon; this.currentLocationName=name;
+    this.currentRegion=RegionModule.getRegion(lat,lon);
     RegionModule.updateInline(name);
-    this.saveRecentLocation(lat, lon, name);
+    this.saveRecentLocation(lat,lon,name);
     this.updateForecast();
     sizeLayout();
   },
-
-  saveRecentLocation(lat, lon, name){
-    let recents = JSON.parse(localStorage.getItem('fishingRecents') || '[]');
-    recents = recents.filter(l => !(Math.abs(l.lat - lat) < 0.01 && Math.abs(l.lon - lon) < 0.01));
-    recents.unshift({lat, lon, name}); recents = recents.slice(0, 5);
+  saveRecentLocation(lat,lon,name){
+    let recents=JSON.parse(localStorage.getItem('fishingRecents')||'[]');
+    recents=recents.filter(l=>!(Math.abs(l.lat-lat)<0.01 && Math.abs(l.lon-lon)<0.01));
+    recents.unshift({lat,lon,name}); recents=recents.slice(0,5);
     localStorage.setItem('fishingRecents', JSON.stringify(recents));
     this.loadRecentLocations();
   },
-
   loadRecentLocations(){
-    const select = document.getElementById('recentLocations');
-    select.innerHTML = '<option value="">Son Lokasyonlar</option>';
-    const recents = JSON.parse(localStorage.getItem('fishingRecents') || '[]');
-    recents.forEach(loc => {
-      const o=document.createElement('option'); o.value=JSON.stringify(loc); o.textContent=loc.name;
-      select.appendChild(o);
-    });
-    select.onchange = (e) => this.loadRecentLocation(e.target.value);
+    const select=document.getElementById('recentLocations');
+    select.innerHTML='<option value="">Son Lokasyonlar</option>';
+    const recents=JSON.parse(localStorage.getItem('fishingRecents')||'[]');
+    recents.forEach(loc=>{ const o=document.createElement('option'); o.value=JSON.stringify(loc); o.textContent=loc.name; select.appendChild(o); });
+    select.onchange=(e)=>this.loadRecentLocation(e.target.value);
   },
-
   loadRecentLocation(value){
-    if (!value) return; const loc = JSON.parse(value);
-    this.setLocation(loc.lat, loc.lon, loc.name);
-    document.getElementById('locationInput').value = loc.name;
-    MapModule.map.setView([loc.lat, loc.lon], 10);
-    if (MapModule.marker) MapModule.map.removeLayer(MapModule.marker);
-    MapModule.marker = L.marker([loc.lat, loc.lon], {draggable:true})
-      .addTo(MapModule.map).bindPopup(escapeHTML(loc.name)).openPopup();
-    MapModule.marker.on('dragend', (evt)=>{ const p=evt.target.getLatLng(); this.setLocation(p.lat, p.lng, "Seçilen Konum"); });
+    if(!value) return; const loc=JSON.parse(value);
+    this.setLocation(loc.lat,loc.lon,loc.name);
+    document.getElementById('locationInput').value=loc.name;
+    MapModule.map.setView([loc.lat,loc.lon],11);
+    if(MapModule.marker) MapModule.map.removeLayer(MapModule.marker);
+    MapModule.marker=L.marker([loc.lat,loc.lon],{draggable:true}).addTo(MapModule.map).bindPopup(escapeHTML(loc.name)).openPopup();
+    MapModule.marker.on('dragend',(evt)=>{ const p=evt.target.getLatLng(); this.setLocation(p.lat,p.lng,"Seçilen Konum"); });
     sizeLayout();
   },
-
   loadLastUsedLocation(){
-    const recents = JSON.parse(localStorage.getItem('fishingRecents') || '[]');
-    if (recents.length > 0) { const last = recents[0]; this.setLocation(last.lat, last.lon, last.name); document.getElementById('locationInput').value = last.name; }
-    else { APIModule.fetchData(this.currentLat, this.currentLon, this.currentDateOffset); }
+    const recents=JSON.parse(localStorage.getItem('fishingRecents')||'[]');
+    if(recents.length>0){ const last=recents[0]; this.setLocation(last.lat,last.lon,last.name); document.getElementById('locationInput').value=last.name; }
+    else{ APIModule.fetchData(this.currentLat,this.currentLon,this.currentDateOffset); }
   }
 };
 
 /* === Data === */
-const DataModule = {
-  fishes: [
+const DataModule={
+  fishes:[
     { name:"Levrek", regions:["Batı","Orta","Doğu"], seasons:["Kış","İlkbahar"], seaTemp:[9,18], airTemp:[5,18], windRange:[5,25], wave:[0.4,1.4], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GECE", prefersRain:true, takim:`Spinning 2.7–3.0 m (10–30 g), PE 1.0–1.2, FC 0.28–0.35.`, yem:`Canlı yemlik, fileto, minnow/silikon/jig.` },
     { name:"Lüfer", regions:["Batı","Orta"], seasons:["Sonbahar","Kış"], seaTemp:[12,22], airTemp:[8,24], windRange:[12,32], wave:[0.8,2.0], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GECE", prefersRain:true, takim:`Spinning 20–40 g; FC 0.35–0.45; tel lider.`, yem:`Canlı istavrit/zargana/sardalya; metal jig/rapala/kaşık.` },
     { name:"Eşkina", regions:["Batı","Orta","Doğu"], seasons:["Kış","Tüm yıl"], seaTemp:[14,21], airTemp:[8,18], windRange:[0,15], wave:[0,0.5], pressure:"low", moon:["Dolunay"], time:"GECE", prefersRain:true, takim:`Dip 0.35–0.45; 60–120 g; iğne #2–#1/0.`, yem:`Teke, karides; kalamar, istavrit fileto.` },
     { name:"Granyoz", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[20,27], airTemp:[22,34], windRange:[0,18], wave:[0.3,1.0], pressure:"stable", moon:["Dolunay"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Ağır jig 40–80 g; PE 1.5–2.0.`, yem:`Canlı küçük balık; kalamar; metal/silikon.` },
     { name:"İzmarit", regions:["Batı","Orta","Doğu"], seasons:["İlkbahar","Yaz"], seaTemp:[15,24], airTemp:[14,24], windRange:[0,12], wave:[0,0.7], pressure:"low", moon:["Yeni Ay"], time:"GÜNDÜZ", prefersRain:false, takim:`Şamandıra/LRF UL‑L; iğne #8–#10.`, yem:`Solucan, mamun, midye; mikro silikon.` },
-    { name:"İspari", regions:["Batı","Orta","Doğu"], seasons:["Yaz"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,12], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`Hafif dip; iğne #6–#8.` , yem:`Mamun, boru, karides, midye.` },
-    { name:"Zargana", regions:["Batı","Orta","Doğu"], seasons:["Yaz"], seaTemp:[20,27], airTemp:[24,34], windRange:[0,12], wave:[0,0.5], pressure:"stable", moon:["Yeni Ay"], time:"GÜNDÜZ", prefersRain:false, takim:`Şamandıra/Spin; mini kaşık 5–12 g.` , yem:`Şerit/i̇pek; parlak kaşık.` },
-    { name:"İstavrit", regions:["Batı","Orta","Doğu"], seasons:["Sonbahar","Kış"], seaTemp:[10,18], airTemp:[8,18], windRange:[10,28], wave:[0.4,1.4], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"GECE_ALACAKARANLIK", prefersRain:true, takim:`Çapari 7–10’lu; 15–30 g kurşun.` , yem:`Tüyler; mikro silikon; minik hamsi.` },
-    { name:"Sargoz", regions:["Batı","Orta"], seasons:["İlkbahar","Yaz"], seaTemp:[15,23], airTemp:[15,27], windRange:[0,18], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Hafif dip/LRF; iğne #4–#6.` , yem:`Mamun, sülünez, midye.` },
-    { name:"Karagöz", regions:["Batı","Orta"], seasons:["İlkbahar","Sonbahar"], seaTemp:[15,24], airTemp:[15,28], windRange:[0,15], wave:[0,0.6], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip/şamandıra.` , yem:`Mamun, boru, karides, midye.` },
-    { name:"Kefal", regions:["Batı","Orta","Doğu"], seasons:["İlkbahar","Sonbahar"], seaTemp:[12,24], airTemp:[14,24], windRange:[0,15], wave:[0,0.4], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ", prefersRain:true, takim:`Şamandıra 3.0–3.9 m; iğne #8–#12.` , yem:`Ekmek/hamur; mamun, boru.` },
-    { name:"Kırlangıç", regions:["Batı","Orta","Doğu"], seasons:["Kış","İlkbahar"], seaTemp:[11,19], airTemp:[6,18], windRange:[10,28], wave:[0.3,1.0], pressure:"low", moon:["Yeni Ay"], time:"GECE", prefersRain:true, takim:`Dip ağır 80–120 g.` , yem:`Karides, fileto, kalamar.` },
-    { name:"Barbunya", regions:["Batı","Orta"], seasons:["Yaz"], seaTemp:[18,25], airTemp:[20,30], windRange:[0,12], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"ALACAKARANLIK", prefersRain:false, takim:`İnce dip 30–60 g.` , yem:`Solucan, mamun, midye, boru.` },
-    { name:"Tekir", regions:["Doğu"], seasons:["İlkbahar","Yaz","Sonbahar"], seaTemp:[16,24], airTemp:[16,26], windRange:[0,15], wave:[0,0.8], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`İnce dip 20–40 g.` , yem:`Solucan, boru kurdu, mamun.` },
-    { name:"İskorpit", regions:["Batı","Orta","Doğu"], seasons:["Tüm yıl"], seaTemp:[10,24], airTemp:[8,28], windRange:[0,22], wave:[0.4,1.2], pressure:"any", moon:["Dolunay"], time:"KARMA", prefersRain:false, takim:`Dip/Zoka 50–100 g.` , yem:`İstavrit fileto, karides.` },
-    { name:"Kalkan", regions:["Batı","Orta"], seasons:["Kış","İlkbahar"], seaTemp:[8,17], airTemp:[4,18], windRange:[0,15], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"GECE", prefersRain:false, takim:`Surf ağır; 100–150 g.` , yem:`Canlı istavrit; geniş şerit.` },
-    { name:"Palamut", regions:["Batı","Orta"], seasons:["Sonbahar"], seaTemp:[16,23], airTemp:[14,22], windRange:[10,30], wave:[0.5,1.5], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Spin/Jig 30–60 g.` , yem:`Metal jig; minnow 11–14 cm.` },
-    { name:"Mezgit", regions:["Orta","Doğu"], seasons:["Tüm yıl"], seaTemp:[8,18], airTemp:[6,18], windRange:[0,20], wave:[0,1.0], pressure:"any", moon:["Dolunay"], time:"GÜNDÜZ_GECE", prefersRain:false, takim:`Dip çoklu köstek.` , yem:`Solucan, mamun, balık parçaları.` },
-    { name:"Uskumru", regions:["Batı","Orta"], seasons:["İlkbahar","Yaz"], seaTemp:[14,22], airTemp:[14,26], windRange:[10,30], wave:[0.5,1.2], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GÜNDÜZ", prefersRain:false, takim:`Jig/Kaşık 20–40 g.` , yem:`Metal jig/kaşık; minnow.` },
-    { name:"Kolyoz", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[14,23], airTemp:[14,24], windRange:[10,28], wave:[0.5,1.2], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Spin metal 20–40 g.` , yem:`Metal/kaşık; minnow.` },
-    { name:"Çupra", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[16,25], airTemp:[16,26], windRange:[0,15], wave:[0,0.6], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`Dip/Şamandıra ML.` , yem:`Kabuklular, midye, karides.` },
-    { name:"Mırmır", regions:["Doğu"], seasons:["Yaz","Sonbahar"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,15], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip 20–40 g.` , yem:`Boru kurdu, mamun, sülünez.` },
+    { name:"İstavrit", regions:["Batı","Orta","Doğu"], seasons:["Sonbahar","Kış"], seaTemp:[10,18], airTemp:[8,18], windRange:[10,28], wave:[0.4,1.4], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"GECE_ALACAKARANLIK", prefersRain:true, takim:`Çapari 7–10’lu; 15–30 g kurşun.`, yem:`Tüyler; mikro silikon; minik hamsi.` },
+    { name:"Sargoz", regions:["Batı","Orta"], seasons:["İlkbahar","Yaz"], seaTemp:[15,23], airTemp:[15,27], windRange:[0,18], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Hafif dip/LRF; iğne #4–#6.`, yem:`Mamun, sülünez, midye.` },
+    { name:"Karagöz", regions:["Batı","Orta"], seasons:["İlkbahar","Sonbahar"], seaTemp:[15,24], airTemp:[15,28], windRange:[0,15], wave:[0,0.6], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip/şamandıra.`, yem:`Mamun, boru, karides, midye.` },
+    { name:"Kefal", regions:["Batı","Orta","Doğu"], seasons:["İlkbahar","Sonbahar"], seaTemp:[12,24], airTemp:[14,24], windRange:[0,15], wave:[0,0.4], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ", prefersRain:true, takim:`Şamandıra 3.0–3.9 m; iğne #8–#12.`, yem:`Ekmek/hamur; mamun, boru.` },
+    { name:"Kırlangıç", regions:["Batı","Orta","Doğu"], seasons:["Kış","İlkbahar"], seaTemp:[11,19], airTemp:[6,18], windRange:[10,28], wave:[0.3,1.0], pressure:"low", moon:["Yeni Ay"], time:"GECE", prefersRain:true, takim:`Dip ağır 80–120 g.`, yem:`Karides, fileto, kalamar.` },
+    { name:"Barbunya", regions:["Batı","Orta"], seasons:["Yaz"], seaTemp:[18,25], airTemp:[20,30], windRange:[0,12], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"ALACAKARANLIK", prefersRain:false, takim:`İnce dip 30–60 g.`, yem:`Solucan, mamun, midye, boru.` },
+    { name:"Tekir", regions:["Doğu"], seasons:["İlkbahar","Yaz","Sonbahar"], seaTemp:[16,24], airTemp:[16,26], windRange:[0,15], wave:[0,0.8], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`İnce dip 20–40 g.`, yem:`Solucan, boru kurdu, mamun.` },
+    { name:"İskorpit", regions:["Batı","Orta","Doğu"], seasons:["Tüm yıl"], seaTemp:[10,24], airTemp:[8,28], windRange:[0,22], wave:[0.4,1.2], pressure:"any", moon:["Dolunay"], time:"KARMA", prefersRain:false, takim:`Dip/Zoka 50–100 g.`, yem:`İstavrit fileto, karides.` },
+    { name:"Kalkan", regions:["Batı","Orta"], seasons:["Kış","İlkbahar"], seaTemp:[8,17], airTemp:[4,18], windRange:[0,15], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"GECE", prefersRain:false, takim:`Surf ağır; 100–150 g.`, yem:`Canlı istavrit; geniş şerit.` },
+    { name:"Palamut", regions:["Batı","Orta"], seasons:["Sonbahar"], seaTemp:[16,23], airTemp:[14,22], windRange:[10,30], wave:[0.5,1.5], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Spin/Jig 30–60 g.`, yem:`Metal jig; minnow 11–14 cm.` },
+    { name:"Mezgit", regions:["Orta","Doğu"], seasons:["Tüm yıl"], seaTemp:[8,18], airTemp:[6,18], windRange:[0,20], wave:[0,1.0], pressure:"any", moon:["Dolunay"], time:"GÜNDÜZ_GECE", prefersRain:false, takim:`Dip çoklu köstek.`, yem:`Solucan, mamun, balık parçaları.` },
+    { name:"Uskumru", regions:["Batı","Orta"], seasons:["İlkbahar","Yaz"], seaTemp:[14,22], airTemp:[14,26], windRange:[10,30], wave:[0.5,1.2], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GÜNDÜZ", prefersRain:false, takim:`Jig/Kaşık 20–40 g.`, yem:`Metal jig/kaşık; minnow.` },
+    { name:"Kolyoz", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[14,23], airTemp:[14,24], windRange:[10,28], wave:[0.5,1.2], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Spin metal 20–40 g.`, yem:`Metal/kaşık; minnow.` },
+    { name:"Çupra", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[16,25], airTemp:[16,26], windRange:[0,15], wave:[0,0.6], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`Dip/Şamandıra ML.`, yem:`Kabuklular, midye, karides.` },
+    { name:"Mırmır", regions:["Doğu"], seasons:["Yaz","Sonbahar"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,15], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip 20–40 g.`, yem:`Boru kurdu, mamun, sülünez.` },
     { name:"Somon", regions:[], seasons:["Tüm yıl"], seaTemp:[0,0], airTemp:[0,0], windRange:[0,0], wave:[0,0], pressure:"any", moon:["Yeni Ay"], time:"GÜNDÜZ", prefersRain:false, takim:`(Bilgi amaçlı)`, yem:`(Bilgi amaçlı)` }
   ],
-  getSeason() {
-    const m = new Date().getMonth() + 1;
-    if ([12,1,2].includes(m)) return "Kış";
-    if ([3,4,5].includes(m)) return "İlkbahar";
-    if ([6,7,8].includes(m)) return "Yaz";
-    return "Sonbahar";
-  },
-  getMoonPhase(date = new Date()) {
-    let y=date.getUTCFullYear(), mo=date.getUTCMonth()+1, d=date.getUTCDate();
-    if (mo==1||mo==2){y--;mo+=12;}
-    let a=Math.floor(y/100), b=Math.floor(a/4), c=2-a+b;
-    let e=Math.floor(365.25*(y+4716)), f=Math.floor(30.6001*(mo+1));
-    let jd=c+d+e+f-1524.5, days=jd-2451549.5, newMoons=days/29.53058867, phase=(newMoons-Math.floor(newMoons))*29.53058867;
-    if (phase<1.5) return "Yeni Ay";
-    if (phase<13.5) return "Hilal - İlk Dördün";
-    if (phase<16.5) return "Dolunay Civarı";
-    return "Son Dördün - Yeni Ay Civarı";
-  },
-  getMoonPhaseEmoji(date = new Date()) {
-    let y=date.getUTCFullYear(), mo=date.getUTCMonth()+1, d=date.getUTCDate();
-    if (mo==1||mo==2){y--;mo+=12;}
-    let a=Math.floor(y/100), b=Math.floor(a/4), c=2-a+b;
-    let e=Math.floor(365.25*(y+4716)), f=Math.floor(30.6001*(mo+1));
-    let jd=c+d+e+f-1524.5, days=jd-2451549.5, newMoons=days/29.53058867, phase=(newMoons-Math.floor(newMoons))*29.53058867;
-    if (phase<1.5) return "🌑"; if (phase<13.5) return "🌓"; if (phase<16.5) return "🌕"; return "🌗";
-  }
+  getSeason(){ const m=new Date().getMonth()+1; if([12,1,2].includes(m)) return "Kış"; if([3,4,5].includes(m)) return "İlkbahar"; if([6,7,8].includes(m)) return "Yaz"; return "Sonbahar"; },
+  getMoonPhase(){ let y=new Date().getUTCFullYear(), mo=new Date().getUTCMonth()+1, d=new Date().getUTCDate(); if(mo==1||mo==2){y--;mo+=12;} let a=Math.floor(y/100), b=Math.floor(a/4), c=2-a+b; let e=Math.floor(365.25*(y+4716)), f=Math.floor(30.6001*(mo+1)); let jd=c+d+e+f-1524.5, days=jd-2451549.5, nm=days/29.53058867, phase=(nm-Math.floor(nm))*29.53058867; if(phase<1.5) return "Yeni Ay"; if(phase<13.5) return "Hilal - İlk Dördün"; if(phase<16.5) return "Dolunay Civarı"; return "Son Dördün - Yeni Ay Civarı"; },
+  getMoonPhaseEmoji(){ let y=new Date().getUTCFullYear(), mo=new Date().getUTCMonth()+1, d=new Date().getUTCDate(); if(mo==1||mo==2){y--;mo+=12;} let a=Math.floor(y/100), b=Math.floor(a/4), c=2-a+b; let e=Math.floor(365.25*(y+4716)), f=Math.floor(30.6001*(mo+1)); let jd=c+d+e+f-1524.5, days=jd-2451549.5, nm=days/29.53058867, phase=(nm-Math.floor(nm))*29.53058867; if(phase<1.5) return "🌑"; if(phase<13.5) return "🌓"; if(phase<16.5) return "🌕"; return "🌗"; }
 };
 
 /* === Skor === */
-const ScoringModule = {
+const ScoringModule={
   color(sc){ return sc>90?'#2563eb':sc>70?'#16a34a':sc>50?'#f59e0b':'#dc2626'; },
   gradedRangeScore(v,min,max,p,tol=0.15){ if(max<=min||p===0||v==null) return 0; const r=max-min, s=min+tol*r, e=max-tol*r; if(v>=s&&v<=e) return p; if((v>=min-tol*r&&v<s)||(v>e&&v<=max+tol*r)) return p*0.5; return 0; },
-  calculate(f, env, label){
+  calculate(f,env,label){
     let s=0, season=DataModule.getSeason(), moon=DataModule.getMoonPhase();
     if(f.seasons.includes(season)||f.seasons.includes("Tüm yıl")) s+=20;
     if(f.time.includes(label)) s+=15;
-    if(f.pressure==="low" && env.pressure<1013) s+=8;
-    else if(f.pressure==="stable" && env.pressure>=1012 && env.pressure<=1018) s+=8;
+    if(f.pressure==="low"&&env.pressure<1013) s+=8;
+    else if(f.pressure==="stable"&&env.pressure>=1012&&env.pressure<=1018) s+=8;
     else if(f.pressure==="any") s+=4;
     if(f.moon?.some?.(m=>moon.includes(m))) s+=8;
-    if(f.prefersRain && env.precipProbability>40) s+=8;
-    s+=this.gradedRangeScore(env.seaTemp, f.seaTemp[0], f.seaTemp[1], 20);
-    s+=this.gradedRangeScore(env.airTemp, f.airTemp[0], f.airTemp[1], 12);
-    if(f.wave) s+=this.gradedRangeScore(env.wave, f.wave[0], f.wave[1], 7);
-    if(f.windRange) s+=this.gradedRangeScore(env.wind, f.windRange[0], f.windRange[1], 10);
+    if(f.prefersRain&&env.precipProbability>40) s+=8;
+    s+=this.gradedRangeScore(env.seaTemp,f.seaTemp[0],f.seaTemp[1],20);
+    s+=this.gradedRangeScore(env.airTemp,f.airTemp[0],f.airTemp[1],12);
+    if(f.wave) s+=this.gradedRangeScore(env.wave,f.wave[0],f.wave[1],7);
+    if(f.windRange) s+=this.gradedRangeScore(env.wind,f.windRange[0],f.windRange[1],10);
     if((env.wave||0)>1.2||(env.wind||0)>25) s+=2;
-    return Math.max(0, Math.min(100, Math.round(s)));
+    return Math.max(0,Math.min(100,Math.round(s)));
   }
 };
 
 /* === Fetch Timeout + Abort === */
-async function fetchWithTimeout(url, ms = 10000) {
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), ms);
-  try { return await fetch(url, { signal: ctrl.signal }); }
-  finally { clearTimeout(id); }
-}
+async function fetchWithTimeout(url,ms=10000){ const ctrl=new AbortController(); const id=setTimeout(()=>ctrl.abort(),ms); try{ return await fetch(url,{signal:ctrl.signal}); } finally{ clearTimeout(id); } }
 
 /* === API (3 saatlik slotlar) === */
-const APIModule = {
-  slots: buildThreeHourSlots(),
-
-  async fetchData(lat, lon, dayOffset = 0) {
+const APIModule={
+  slots:buildThreeHourSlots(),
+  async fetchData(lat,lon,dayOffset=0){
     document.getElementById('loading').style.display='block';
+    const targetDate=new Date(); targetDate.setDate(targetDate.getDate()+dayOffset);
+    const dateStr=targetDate.toISOString().split('T')[0];
+    const weatherUrl=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,surface_pressure,cloud_cover,precipitation_probability&start_date=${dateStr}&end_date=${dateStr}&timezone=auto&wind_speed_unit=kmh`;
+    const marineUrl=`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=sea_surface_temperature,wave_height&start_date=${dateStr}&end_date=${dateStr}&timezone=auto`;
 
-    const targetDate = new Date(); targetDate.setDate(targetDate.getDate()+dayOffset);
-    const dateStr = targetDate.toISOString().split('T')[0];
-
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,surface_pressure,cloud_cover,precipitation_probability&start_date=${dateStr}&end_date=${dateStr}&timezone=auto&wind_speed_unit=kmh`;
-    const marineUrl  = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=sea_surface_temperature,wave_height&start_date=${dateStr}&end_date=${dateStr}&timezone=auto`;
-
-    const cacheKey = `wx:${lat.toFixed(3)},${lon.toFixed(3)}:${dateStr}`;
+    const cacheKey=`wx:${lat.toFixed(3)},${lon.toFixed(3)}:${dateStr}`;
     try{
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        const { wData, mData } = JSON.parse(cached);
-        this.processData(wData, mData, targetDate);
-        document.getElementById('loading').style.display='none';
-        return;
-      }
-    } catch (_) { /* yoksay */ }
+      const cached=localStorage.getItem(cacheKey);
+      if(cached){ const {wData,mData}=JSON.parse(cached); this.processData(wData,mData,targetDate); document.getElementById('loading').style.display='none'; return; }
+    }catch(_){}
 
     try{
-      const [wRes,mRes]=await Promise.all([
-        fetchWithTimeout(weatherUrl, 12000),
-        fetchWithTimeout(marineUrl, 12000)
-      ]);
+      const [wRes,mRes]=await Promise.all([fetchWithTimeout(weatherUrl,12000), fetchWithTimeout(marineUrl,12000)]);
       const wData=await wRes.json(), mData=await mRes.json();
       if(!wData?.hourly?.time?.length) throw new Error("Hava verisi yok");
-
       if(!mData?.hourly?.time?.length){
-        mData.hourly = { time: wData.hourly.time.slice(),
-          sea_surface_temperature: wData.hourly.time.map(()=>18),
-          wave_height: wData.hourly.time.map(()=>0.3) };
+        mData.hourly={ time:wData.hourly.time.slice(), sea_surface_temperature:wData.hourly.time.map(()=>18), wave_height:wData.hourly.time.map(()=>0.3) };
       }
-
-      try { localStorage.setItem(cacheKey, JSON.stringify({ wData, mData })); } catch (_){}
-
-      this.processData(wData, mData, targetDate);
-    }catch(e){
-      console.error(e);
-      showToast("Veri alınamadı. Lütfen daha sonra tekrar deneyin.", 'error');
-    }
+      try{ localStorage.setItem(cacheKey, JSON.stringify({wData,mData})); }catch(_){}
+      this.processData(wData,mData,targetDate);
+    }catch(e){ console.error(e); showToast("Veri alınamadı. Lütfen daha sonra tekrar deneyin.",'error'); }
     finally{ document.getElementById('loading').style.display='none'; }
   },
+  processData(wData,mData,targetDate){
+    const sunrise=wData?.daily?.sunrise?.[0]? wData.daily.sunrise[0].split('T')[1].slice(0,5):'06:00';
+    const sunset =wData?.daily?.sunset?.[0]?  wData.daily.sunset[0].split('T')[1].slice(0,5):'18:00';
 
-  processData(wData, mData, targetDate){
-    const sunrise = wData?.daily?.sunrise?.[0] ? wData.daily.sunrise[0].split('T')[1].slice(0,5) : '06:00';
-    const sunset  = wData?.daily?.sunset?.[0]  ? wData.daily.sunset[0].split('T')[1].slice(0,5)  : '18:00';
-
-    const hourly = wData.hourly.time.map((t,i)=>({
+    const hourly=wData.hourly.time.map((t,i)=>({
       time:new Date(t),
-      airTemp:wData.hourly.temperature_2m?.[i] ?? null,
-      wind:wData.hourly.wind_speed_10m?.[i] ?? null,
-      windDirDeg:wData.hourly.wind_direction_10m?.[i] ?? null,
-      pressure:wData.hourly.surface_pressure?.[i] ?? null,
-      cloud:wData.hourly.cloud_cover?.[i] ?? 0,
-      precipProbability:wData.hourly.precipitation_probability?.[i] ?? 0,
-      seaTemp:mData.hourly.sea_surface_temperature?.[i] ?? 18,
-      wave:mData.hourly.wave_height?.[i] ?? 0.3
+      airTemp:wData.hourly.temperature_2m?.[i]??null,
+      wind:wData.hourly.wind_speed_10m?.[i]??null,
+      windDirDeg:wData.hourly.wind_direction_10m?.[i]??null,
+      pressure:wData.hourly.surface_pressure?.[i]??null,
+      cloud:wData.hourly.cloud_cover?.[i]??0,
+      precipProbability:wData.hourly.precipitation_probability?.[i]??0,
+      seaTemp:mData.hourly.sea_surface_temperature?.[i]??18,
+      wave:mData.hourly.wave_height?.[i]??0.3
     }));
 
-    this.slots = buildThreeHourSlots();
+    this.slots=buildThreeHourSlots();
     this.slots.forEach(slot=>{
       const relevant=hourly.filter(d=>slot.hours.includes(d.time.getHours()));
       if(!relevant.length) return;
-      const avg=prop=>{ const vals=relevant.map(d=>d[prop]).filter(v=>typeof v==='number'); return vals.length? vals.reduce((a,b)=>a+b,0)/vals.length : null; };
+      const avg=prop=>{ const vals=relevant.map(d=>d[prop]).filter(v=>typeof v==='number'); return vals.length? vals.reduce((a,b)=>a+b,0)/vals.length:null; };
       slot.env={
-        airTemp: Math.round(avg('airTemp') ?? 0),
-        seaTemp: Math.round(avg('seaTemp') ?? 0),
-        wind: Math.round(avg('wind') ?? 0),
-        windDirDeg: relevant[0].windDirDeg ?? null,
-        windDir: this.cardinal(relevant[0].windDirDeg),
-        windDirLong: this.cardinalLong(relevant[0].windDirDeg),
-        wave: parseFloat((avg('wave') ?? 0).toFixed(1)),
-        pressure: Math.round(avg('pressure') ?? 1015),
-        weather: ((relevant[0].cloud ?? 0) < 30 ? "Açık" : (relevant[0].cloud ?? 0) < 70 ? "Bulutlu" : "Kapalı"),
-        precipProbability: Math.round(avg('precipProbability') ?? 0),
-        selectedDate: targetDate.toLocaleDateString('tr-TR',{weekday:'long', day:'numeric', month:'long'}),
+        airTemp:Math.round(avg('airTemp')??0),
+        seaTemp:Math.round(avg('seaTemp')??0),
+        wind:Math.round(avg('wind')??0),
+        windDirDeg:relevant[0].windDirDeg??null,
+        windDir:this.cardinal(relevant[0].windDirDeg),
+        windDirLong:this.cardinalLong(relevant[0].windDirDeg),
+        wave:parseFloat((avg('wave')??0).toFixed(1)),
+        pressure:Math.round(avg('pressure')??1015),
+        weather:((relevant[0].cloud??0)<30?"Açık":(relevant[0].cloud??0)<70?"Bulutlu":"Kapalı"),
+        precipProbability:Math.round(avg('precipProbability')??0),
+        selectedDate:targetDate.toLocaleDateString('tr-TR',{weekday:'long', day:'numeric', month:'long'}),
         sunrise, sunset
       };
-      const centerHour = Math.round((slot.hours[0] + slot.hours[2]) / 2);
-      slot.timeLabel = labelBySunClock(centerHour, sunrise, sunset);
+      const centerHour=Math.round((slot.hours[0]+slot.hours[2])/2);
+      slot.timeLabel=labelBySunClock(centerHour,sunrise,sunset);
     });
 
     UIModule.renderCards();
     sizeLayout();
   },
-
-  cardinal(deg){ if(deg==null || isNaN(deg)) return "—"; const d=["K","KD","D","GD","G","GB","B","KB"]; return d[Math.round(deg/45)%8]; },
-  cardinalLong(deg){ if(deg==null || isNaN(deg)) return "Değişken"; const d=["Kuzey","Kuzeydoğu","Doğu","Güneydoğu","Güney","Güneybatı","Batı","Kuzeybatı"]; return d[Math.round(deg/45)%8]; }
+  cardinal(deg){ if(deg==null||isNaN(deg)) return "—"; const d=["K","KD","D","GD","G","GB","B","KB"]; return d[Math.round(deg/45)%8]; },
+  cardinalLong(deg){ if(deg==null||isNaN(deg)) return "Değişken"; const d=["Kuzey","Kuzeydoğu","Doğu","Güneydoğu","Güney","Güneybatı","Batı","Kuzeybatı"]; return d[Math.round(deg/45)%8]; }
 };
 
 /* === Harita === */
-const MapModule = {
+const MapModule={
   map:null, marker:null,
   init(){
-    this.map = L.map('map').setView([App.currentLat, App.currentLon], 11);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      attribution:'&copy; OpenStreetMap contributors'
-    }).addTo(this.map);
+    this.map=L.map('map').setView([App.currentLat,App.currentLon],11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution:'&copy; OpenStreetMap contributors' }).addTo(this.map);
     this.setMarker({lat:App.currentLat,lng:App.currentLon}, App.currentLocationName);
-    this.map.on('click', e=>{ this.setMarker(e.latlng,"Seçilen Konum"); App.setLocation(e.latlng.lat, e.latlng.lng, "Seçilen Konum"); });
-    setTimeout(sizeLayout, 100);
+    this.map.on('click', e=>{ this.setMarker(e.latlng,"Seçilen Konum"); App.setLocation(e.latlng.lat,e.latlng.lng,"Seçilen Konum"); });
+    setTimeout(sizeLayout,100);
   },
-  setMarker(latlng, popupText=""){
+  setMarker(latlng,popupText=""){
     if(this.marker) this.map.removeLayer(this.marker);
     this.marker=L.marker(latlng,{draggable:true}).addTo(this.map);
     if(popupText) this.marker.bindPopup(escapeHTML(popupText)).openPopup();
@@ -710,24 +612,22 @@ const MapModule = {
   },
   async searchLocation(q){
     try{
-      const res=await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=tr`, 12000);
+      const res=await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=tr`,12000);
       const data=await res.json();
-      if(data.results && data.results[0]){
-        const best=data.results[0]; const {latitude, longitude, name, country_code}=best;
-        this.map.setView([latitude, longitude], 11);
+      if(data.results&&data.results[0]){
+        const best=data.results[0]; const {latitude,longitude,name,country_code}=best;
+        this.map.setView([latitude,longitude],11);
         this.setMarker({lat:latitude,lng:longitude}, name);
-        const nm = country_code ? `${name} (${country_code})` : name;
-        App.setLocation(latitude, longitude, nm);
-      }else showToast("Lokasyon bulunamadı!", 'error');
-    }catch(err){
-      showToast("Lokasyon araması başarısız.", 'error');
-    }
+        const nm=country_code?`${name} (${country_code})`:name;
+        App.setLocation(latitude,longitude,nm);
+      }else showToast("Lokasyon bulunamadı!",'error');
+    }catch(err){ showToast("Lokasyon araması başarısız.",'error'); }
     finally{ sizeLayout(); }
   }
 };
 
 /* === UI === */
-const UIModule = {
+const UIModule={
   activeIndex:0,
   inRegionFishes(){ return DataModule.fishes.filter(f=>f.regions?.includes(App.currentRegion)); },
   outRegionFishes(){ return DataModule.fishes.filter(f=>Array.isArray(f.regions)&&!f.regions.includes(App.currentRegion)); },
@@ -735,39 +635,35 @@ const UIModule = {
   renderCards(){
     const cards=document.getElementById('cards'); cards.innerHTML='';
     const inRegion=this.inRegionFishes();
-
-    const frag = document.createDocumentFragment();
+    const frag=document.createDocumentFragment();
 
     APIModule.slots.forEach((slot,i)=>{
       if(!slot.env) return;
-      const ranked=inRegion.map(f=>({fish:f, score:ScoringModule.calculate(f,slot.env,slot.timeLabel)}))
-                           .sort((a,b)=>b.score-a.score);
-      const card=document.createElement('div'); card.className='card';
-      card.setAttribute('role','button');
-      card.setAttribute('tabindex','0');
+      const ranked=inRegion.map(f=>({fish:f,score:ScoringModule.calculate(f,slot.env,slot.timeLabel)})).sort((a,b)=>b.score-a.score);
+      const card=document.createElement('div'); card.className='card'; card.setAttribute('role','button'); card.setAttribute('tabindex','0');
 
       if(!ranked.length){
-        card.setAttribute('aria-label', `${slot.t} için uygun tür yok`);
+        card.setAttribute('aria-label',`${slot.t} için uygun tür yok`);
         card.innerHTML=`<b>${slot.t}</b><div class="small" style="margin-top:8px">Bu bölgede uygun tür bulunamadı.</div>`;
-        card.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') card.click(); });
+        card.addEventListener('keydown',(e)=>{ if(e.key==='Enter') card.click(); });
         frag.appendChild(card); return;
       }
 
       const best=ranked[0];
       const windLabel=`${slot.env.wind} km/sa ${slot.env.windDir}`, windTitle=`${slot.env.wind} km/sa – ${slot.env.windDirLong}`;
-      const top3=ranked.slice(0,3).map((x,idx)=>{const p=idx===0?"🥇":idx===1?"🥈":"🥉"; return `<span class="chip" style="border-color:${ScoringModule.color(x.score)}">${p} ${x.fish.name} ${x.score}%</span>`;}).join(' ');
-      const fishBadge = fishIcons(best.score);
+      const top3=ranked.slice(0,3).map((x,idx)=>{ const p=idx===0?"🥇":idx===1?"🥈":"🥉"; return `<span class="chip" style="border-color:${ScoringModule.color(x.score)}">${p} ${x.fish.name} ${x.score}%</span>`; }).join(' ');
+      const fishBadge=fishIcons(best.score);
       card.setAttribute('aria-label',`${slot.t} için en iyi balık: ${best.fish.name} ${best.score}%`);
       card.innerHTML=`
         <b>${slot.t}</b>
-        <div style="margin:8px 0; font-weight:700">${fishBadge ? fishBadge + ' ' : ''}${best.fish.name} — <span style="color:${ScoringModule.color(best.score)}">${best.score}%</span></div>
+        <div style="margin:8px 0; font-weight:700">${fishBadge?fishBadge+' ':''}${best.fish.name} — <span style="color:${ScoringModule.color(best.score)}">${best.score}%</span></div>
         <div class="env">
           🌡️ ${slot.env.airTemp}°C • 🌊 ${slot.env.wave} m<br>
           <span title="${escapeHTML(windTitle)}">🌬️ ${escapeHTML(windLabel)}</span> • ⛅ ${escapeHTML(slot.env.weather)}
         </div>
         <div class="top3 small">${top3}</div>`;
       card.onclick=()=>this.openModal(i);
-      card.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') card.click(); });
+      card.addEventListener('keydown',(e)=>{ if(e.key==='Enter') card.click(); });
       frag.appendChild(card);
     });
 
@@ -793,7 +689,7 @@ const UIModule = {
   },
 
   renderSlot(slot){
-    document.getElementById('slotTitle').textContent = `${slot.t} – ${slot.timeLabel} (${slot.env.selectedDate}) • ${RegionModule.textMap[App.currentRegion]}`;
+    document.getElementById('slotTitle').textContent=`${slot.t} – ${slot.timeLabel} (${slot.env.selectedDate}) • ${RegionModule.textMap[App.currentRegion]}`;
     const envGrid=document.getElementById('envGrid');
     const windLabel=`${slot.env.wind} km/sa ${slot.env.windDir}`, windTitle=`${slot.env.wind} km/sa – ${slot.env.windDirLong}`;
     envGrid.innerHTML=`
@@ -829,9 +725,9 @@ const UIModule = {
             </div>
             <div class="detail">
               <div class="bar"><div style="width:${x.score}%;background:${ScoringModule.color(x.score)}"></div></div>
-              <div class="av-comment" style="color:${c}">${comment}</div>
-              <div class="takim-yem"><span class="takim-icon">🎣👤</span> <span class="small">${x.fish.takim}</span></div>
-              <div class="takim-yem"><span class="takim-icon">🪱</span> <span class="small">${x.fish.yem}</span></div>
+              <div class="av-comment" style="color:${c}">${escapeHTML(comment)}</div>
+              <div class="takim-yem"><span class="takim-icon">🎣👤</span> <span class="small">${escapeHTML(x.fish.takim)}</span></div>
+              <div class="takim-yem"><span class="takim-icon">🪱</span> <span class="small">${escapeHTML(x.fish.yem)}</span></div>
               ${heavyHint}
               <div class="small">${DataModule.getMoonPhaseEmoji()} Ay evresi: ${DataModule.getMoonPhase()}</div>
             </div>
@@ -849,8 +745,8 @@ const UIModule = {
           <div class="detail">
             <div class="nadir">Bu bölgede nadir</div>
             <div class="bar"><div style="width:${x.score}%;background:${ScoringModule.color(x.score)}"></div></div>
-            <div class="takim-yem"><span class="takim-icon">🎣👤</span> <span class="small">${x.fish.takim}</span></div>
-            <div class="takim-yem"><span class="takim-icon">🪱</span> <span class="small">${x.fish.yem}</span></div>
+            <div class="takim-yem"><span class="takim-icon">🎣👤</span> <span class="small">${escapeHTML(x.fish.takim)}</span></div>
+            <div class="takim-yem"><span class="takim-icon">🪱</span> <span class="small">${escapeHTML(x.fish.yem)}</span></div>
             <div class="small">${DataModule.getMoonPhaseEmoji()} Ay evresi: ${DataModule.getMoonPhase()}</div>
           </div>
         </div>`).join('');
@@ -862,159 +758,97 @@ const UIModule = {
 
 /* === Dikey yerleşim === */
 function sizeLayout(){
-  const vh = window.innerHeight;
-  const headerH = document.querySelector('header')?.getBoundingClientRect().height || 0;
-  const panelH  = document.querySelector('.location-panel')?.getBoundingClientRect().height || 0;
-  const mapH    = document.getElementById('map')?.getBoundingClientRect().height || 0;
-  const cards   = document.getElementById('cards');
-  const margins = 24;
-  const avail = Math.max(220, vh - (headerH + panelH + mapH + margins));
-  if (cards) { cards.style.height = `${Math.round(avail)}px`; }
+  const vh=window.innerHeight;
+  const headerH=document.querySelector('header')?.getBoundingClientRect().height||0;
+  const panelH=document.querySelector('.location-panel')?.getBoundingClientRect().height||0;
+  const mapH=document.getElementById('map')?.getBoundingClientRect().height||0;
+  const cards=document.getElementById('cards');
+  const margins=24;
+  const avail=Math.max(220, vh-(headerH+panelH+mapH+margins));
+  if(cards){ cards.style.height=`${Math.round(avail)}px`; }
 }
-window.addEventListener('load', sizeLayout);
-window.addEventListener('resize', sizeLayout);
-if (window.ResizeObserver) {
-  const ro = new ResizeObserver(()=> sizeLayout());
-  ro.observe(document.body);
-}
+window.addEventListener('load',sizeLayout);
+window.addEventListener('resize',sizeLayout);
+if(window.ResizeObserver){ const ro=new ResizeObserver(()=>sizeLayout()); ro.observe(document.body); }
 
 /* === Modal erişilebilirliği === */
 function setupModalInteractions(){
-  const modal = document.getElementById('modal');
-  const sheet = document.getElementById('modalSheet');
-  const closeBtn = document.getElementById('modalClose');
+  const modal=document.getElementById('modal');
+  const sheet=document.getElementById('modalSheet');
+  const closeBtn=document.getElementById('modalClose');
 
-  modal.addEventListener('click', (e) => {
-    if (e.target.id === 'modal') UIModule.closeModal();
-  });
+  modal.addEventListener('click',(e)=>{ if(e.target.id==='modal') UIModule.closeModal(); });
+  closeBtn.addEventListener('click',()=>UIModule.closeModal());
 
-  closeBtn.addEventListener('click', () => UIModule.closeModal());
-
-  sheet.addEventListener('keydown', (e) => {
-    if (e.key !== 'Tab') return;
-    const focusable = sheet.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (!first || !last) return;
-    if (e.shiftKey) {
-      if (document.activeElement === first) { last.focus(); e.preventDefault(); }
-    } else {
-      if (document.activeElement === last) { first.focus(); e.preventDefault(); }
-    }
+  sheet.addEventListener('keydown',(e)=>{
+    if(e.key!=='Tab') return;
+    const focusable=sheet.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+    const first=focusable[0], last=focusable[focusable.length-1];
+    if(!first||!last) return;
+    if(e.shiftKey){ if(document.activeElement===first){ last.focus(); e.preventDefault(); } }
+    else{ if(document.activeElement===last){ first.focus(); e.preventDefault(); } }
   });
 }
 
 /* === Rozet: mevcut konuma git === */
 function setupRegionInline(){
-  const regionEl = document.getElementById('regionInline');
-  if (!regionEl) return;
-
-  const goToCurrent = () => {
-    try {
-      const lat = App.currentLat, lon = App.currentLon;
-      const name = App.currentLocationName || "Mevcut Konum";
-
-      if (MapModule?.map?.flyTo) {
-        MapModule.map.flyTo([lat, lon], 12, { duration: 0.6 });
-      } else {
-        MapModule.map.setView([lat, lon], 12);
-      }
-
-      if (!MapModule.marker) {
-        MapModule.setMarker({lat, lng: lon}, name);
-      } else {
-        MapModule.marker.setLatLng([lat, lon]);
-        MapModule.marker.bindPopup(escapeHTML(name)).openPopup();
-      }
-
-      // Hafif görsel geri bildirim
-      regionEl.style.boxShadow = "0 0 0 6px rgba(37,99,235,0.25)";
-      setTimeout(()=> regionEl.style.boxShadow = "", 400);
-    } catch (e) {
-      showToast("Mevcut konuma gidilemedi.", "error");
-    }
+  const regionEl=document.getElementById('regionInline'); if(!regionEl) return;
+  const goToCurrent=()=>{
+    try{
+      const lat=App.currentLat, lon=App.currentLon, name=App.currentLocationName||"Mevcut Konum";
+      if(MapModule?.map?.flyTo){ MapModule.map.flyTo([lat,lon],12,{duration:0.6}); } else { MapModule.map.setView([lat,lon],12); }
+      if(!MapModule.marker){ MapModule.setMarker({lat,lng:lon}, name); }
+      else{ MapModule.marker.setLatLng([lat,lon]); MapModule.marker.bindPopup(escapeHTML(name)).openPopup(); }
+      regionEl.style.boxShadow="0 0 0 6px rgba(37,99,235,0.25)"; setTimeout(()=> regionEl.style.boxShadow="",400);
+    }catch(e){ showToast("Mevcut konuma gidilemedi.","error"); }
   };
-
-  regionEl.addEventListener('click', goToCurrent);
-  regionEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      goToCurrent();
-    }
-  });
+  regionEl.addEventListener('click',goToCurrent);
+  regionEl.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goToCurrent(); } });
 }
 
-/* === Rozet içindeki konum ikonu: geolokasyon al === */
+/* === Sol geolokasyon ikonu: konum al === */
 function setupRegionLocateIcon(){
-  const icon = document.getElementById('regionLocateIcon');
-  if (!icon) return;
-  icon.addEventListener('click', (e) => {
-    e.stopPropagation(); // Rozet tıklamasını tetikleme
-    if (!navigator.geolocation) { showToast("Tarayıcınız konum desteği sağlamıyor.", 'error'); return; }
+  const icon=document.getElementById('regionLocateIcon'); if(!icon) return;
+  icon.addEventListener('click',()=>{
+    if(!navigator.geolocation){ showToast("Tarayıcınız konum desteği sağlamıyor.",'error'); return; }
     navigator.geolocation.getCurrentPosition(
-      pos => {
-        const { latitude, longitude } = pos.coords;
-        if (MapModule?.map?.flyTo) {
-          MapModule.map.flyTo([latitude, longitude], 12, { duration: 0.6 });
-        } else {
-          MapModule.map.setView([latitude, longitude], 12);
-        }
-        MapModule.setMarker({ lat: latitude, lng: longitude }, "Benim Konumum");
-        App.setLocation(latitude, longitude, "Benim Konumum");
+      pos=>{
+        const {latitude,longitude}=pos.coords;
+        if(MapModule?.map?.flyTo){ MapModule.map.flyTo([latitude,longitude],12,{duration:0.6}); } else { MapModule.map.setView([latitude,longitude],12); }
+        MapModule.setMarker({lat:latitude,lng:longitude},"Benim Konumum");
+        App.setLocation(latitude,longitude,"Benim Konumum");
       },
-      err => showToast("Konum alınamadı: " + err.message, 'error'),
-      { enableHighAccuracy: true, timeout: 8000 }
+      err=>showToast("Konum alınamadı: "+err.message,'error'),
+      { enableHighAccuracy:true, timeout:8000 }
     );
   });
 }
 
 /* === Mobil scroll ipucu === */
 function setupScrollHint(){
-  const hintEl = document.getElementById('scrollHint');
-  const cardsEl = document.getElementById('cards');
-  if (!hintEl || !cardsEl) return;
-
-  // İlk kez veya uzun aradan sonra göster (24 saat)
-  const key = 'fishingScrollHintShownAt';
-  const last = parseInt(localStorage.getItem(key) || '0', 10);
-  const now = Date.now();
-  const dayMs = 24*60*60*1000;
-
-  const shouldShow = (now - last) > dayMs;
-  if (shouldShow && window.matchMedia('(max-width: 767px)').matches) {
-    hintEl.style.display = 'block';
-    // Kullanıcı aşağı kaydırırsa gizle ve zamanı kaydet
-    const onScroll = () => {
-      if (cardsEl.scrollTop > 20) {
-        hintEl.style.display = 'none';
-        localStorage.setItem(key, String(now));
-        cardsEl.removeEventListener('scroll', onScroll);
-      }
-    };
-    cardsEl.addEventListener('scroll', onScroll);
-
-    // 6 saniye sonra kendiliğinden kaydet ve gizle (rahatsız etmemesi için)
-    setTimeout(()=>{
-      hintEl.style.display = 'none';
-      localStorage.setItem(key, String(now));
-      cardsEl.removeEventListener('scroll', onScroll);
-    }, 6000);
-  } else {
-    hintEl.style.display = 'none';
-  }
+  const hintEl=document.getElementById('scrollHint'), cardsEl=document.getElementById('cards');
+  if(!hintEl||!cardsEl) return;
+  const key='fishingScrollHintShownAt'; const last=parseInt(localStorage.getItem(key)||'0',10); const now=Date.now(); const dayMs=24*60*60*1000;
+  const shouldShow=(now-last)>dayMs;
+  if(shouldShow && window.matchMedia('(max-width: 767px)').matches){
+    hintEl.style.display='block';
+    const onScroll=()=>{ if(cardsEl.scrollTop>20){ hintEl.style.display='none'; localStorage.setItem(key,String(now)); cardsEl.removeEventListener('scroll',onScroll); } };
+    cardsEl.addEventListener('scroll',onScroll);
+    setTimeout(()=>{ hintEl.style.display='none'; localStorage.setItem(key,String(now)); cardsEl.removeEventListener('scroll',onScroll); },6000);
+  } else { hintEl.style.display='none'; }
 }
 
 /* === Arama ve Paylaş === */
-document.getElementById('searchButton').addEventListener('click', () => App.searchLocation());
-document.getElementById('shareButton').addEventListener('click', ()=>{
+document.getElementById('searchButton').addEventListener('click',()=>App.searchLocation());
+document.getElementById('shareButton').addEventListener('click',()=>{
   const title=document.getElementById('slotTitle').textContent;
   const location=document.getElementById('locationInput').value || App.currentLocationName || "Belirtilen Lokasyon";
   const d=new Date(); d.setDate(d.getDate()+App.currentDateOffset);
   const formattedDate=d.toLocaleDateString('tr-TR',{weekday:'long', day:'numeric', month:'long'});
   const panelUrl=window.location.href;
-  const activeIdx=UIModule.activeIndex ?? 0; const activeSlot=APIModule.slots[activeIdx]; const env=activeSlot?.env || {};
-  const windLabel=`${env?.wind ?? '—'} km/sa ${env?.windDirLong || env?.windDir || ''}`, waveLabel=`${env?.wave ?? '—'} m`;
-  const text = `🎣 Balık Avı Tahmini
+  const activeIdx=UIModule.activeIndex??0; const activeSlot=APIModule.slots[activeIdx]; const env=activeSlot?.env||{};
+  const windLabel=`${env?.wind??'—'} km/sa ${env?.windDirLong||env?.windDir||''}`, waveLabel=`${env?.wave??'—'} m`;
+  const text=`🎣 Balık Avı Tahmini
 
 📍 ${location}
 📅 ${formattedDate}
@@ -1024,9 +858,8 @@ document.getElementById('shareButton').addEventListener('click', ()=>{
 
 Detaylı tahmin için paneli ziyaret et!
 🔗 ${panelUrl}`;
-  if (navigator.share) {
-    navigator.share({title:'Balık Avı Tahmini', text}).catch(()=> navigator.clipboard.writeText(text).then(()=>showToast("Metin panoya kopyalandı!")) );
-  } else { navigator.clipboard.writeText(text).then(()=>showToast("Metin panoya kopyalandı!")); }
+  if(navigator.share){ navigator.share({title:'Balık Avı Tahmini', text}).catch(()=> navigator.clipboard.writeText(text).then(()=>showToast("Metin panoya kopyalandı!")) ); }
+  else{ navigator.clipboard.writeText(text).then(()=>showToast("Metin panoya kopyalandı!")); }
 });
 
 /* === Başlat === */
@@ -1034,3 +867,4 @@ App.init();
 </script>
 </body>
 </html>
+``
