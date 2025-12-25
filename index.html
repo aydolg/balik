@@ -7,7 +7,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <!-- 🔐 Content Security Policy (CSP) -->
-<!-- Not: Bu CSP, panelde kullanılan dış kaynakları izinli hale getirir. Gerekirse kaynak listesini genişletebiliriz. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
   script-src 'self' https://unpkg.com 'unsafe-inline';
@@ -17,19 +16,14 @@
   font-src   'self' data:;
 ">
 
-<!-- ✅ Leaflet CSS (SRI isteğe bağlı; hash CDN sürümüne bağlıdır) -->
+<!-- ✅ Leaflet CSS -->
 <link
   rel="stylesheet"
   href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 />
-<!-- <link rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="/* SRI hash buraya */"
-  crossorigin="anonymous"> -->
 
 <style>
   :root{
-    /* Tema değişkenleri */
     --bg: #0b1220;
     --fg: #ffffff;
     --panel: #111827;
@@ -44,7 +38,6 @@
     --toast-fg: #ffffff;
     --toast-error: #ef4444;
   }
-  /* Açık tema */
   body.light{
     --bg: #f8fafc;
     --fg: #0f172a;
@@ -60,7 +53,6 @@
     --toast-fg: #0f172a;
     --toast-error: #dc2626;
   }
-  /* Okyanus tema */
   body.ocean{
     --bg: #06151f;
     --fg: #e6f7ff;
@@ -73,7 +65,6 @@
     --region-bg: #0e2b3d;
     --region-bd: #13506b;
   }
-  /* Orman tema */
   body.forest{
     --bg: #0c1610;
     --fg: #eaffea;
@@ -96,17 +87,44 @@
     padding:16px; text-align:center; border-bottom:1px solid var(--border);
     position:relative; min-height:60px; display:flex; flex-direction:column; gap:8px; align-items:center;
   }
-  h2{margin:0;font-size:22px}
+  h2{margin:0;font-size:22px; display:flex; align-items:center; gap:8px;}
 
-  /* Başlık altında Bölge + Şehir rozeti */
+  /* Başlıktaki konum ikonu (tıklanabilir ve animasyonlu) */
+  .locate-icon{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:28px; height:28px; border-radius:50%;
+    background:rgba(255,255,255,0.12); border:1px solid var(--border);
+    cursor:pointer; transition:transform .2s, box-shadow .2s, background .2s;
+    position:relative;
+  }
+  .locate-icon:hover{ transform:scale(1.08); box-shadow:0 0 0 3px rgba(37,99,235,.35); background:rgba(255,255,255,0.18); }
+  .locate-icon:active{ transform:scale(0.95); }
+  .locate-icon::after{
+    content:"";
+    position:absolute; inset:-6px;
+    border-radius:50%;
+    box-shadow:0 0 0 0 rgba(37,99,235,0.6);
+    animation:pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(37,99,235,0.6); }
+    70%{ box-shadow:0 0 0 14px rgba(37,99,235,0); }
+    100%{ box-shadow:0 0 0 0 rgba(37,99,235,0); }
+  }
+
+  /* Bölge rozeti (tıklanabilir) */
   .region-inline{
     display:inline-flex; align-items:center; gap:10px;
     background:var(--region-bg); border:2px solid var(--region-bd); color:var(--fg);
     border-radius:999px; padding:8px 14px; font-size:14px; font-weight:600;
     box-shadow:0 4px 12px rgba(0,0,0,.25);
+    cursor:pointer; transition: transform .15s ease, box-shadow .15s ease;
   }
+  .region-inline:hover{ transform: translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.35); }
+  .region-inline:active{ transform: scale(0.98); }
+  .region-inline:focus{ outline:none; box-shadow:0 0 0 3px rgba(37,99,235,.35); }
 
-  /* Toolbar */
+  /* Toolbar: sadece tema seçici */
   .toolbar{
     position:absolute; top:12px; right:12px; display:flex; gap:8px; align-items:center;
   }
@@ -114,12 +132,7 @@
     background:var(--panel); color:var(--fg); border:1px solid var(--border);
     border-radius:10px; padding:8px 10px; font-size:14px; cursor:pointer;
   }
-  .theme-toggle{
-    background:var(--panel); border:1px solid var(--border);
-    border-radius:10px; padding:8px 10px; font-size:14px; cursor:pointer;
-  }
 
-  /* Arama paneli — tek satır */
   .location-panel{padding:16px;background:var(--panel);display:flex;flex-direction:column;gap:12px}
   .search-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
   .search-row > *{ flex:1 1 220px; min-width:180px; }
@@ -139,12 +152,7 @@
     padding:12px 14px; font-size:16px; font-weight:700; cursor:pointer; transition:all .2s
   }
   #searchButton:active{transform:scale(0.98)}
-  #locateMe{
-    background:var(--panel); border:1px solid var(--border);
-    border-radius:12px; padding:12px; font-size:16px; cursor:pointer;
-  }
 
-  /* Harita */
   #map{
     height:min(30dvh, 300px); margin:16px; border-radius:16px; overflow:hidden;
     box-shadow:0 8px 24px rgba(0,0,0,.4); position:relative; z-index:1
@@ -153,7 +161,6 @@
 
   #loading{display:none;color:#16a34a;text-align:center;font-size:18px;padding:20px;font-weight:bold}
 
-  /* Kartlar */
   .cards{
     padding:0 16px 16px; display:grid; gap:16px;
     grid-template-columns: repeat(1, minmax(280px, 1fr));
@@ -213,7 +220,6 @@
   .takim-yem .small{line-height:1.6}
   .nadir{display:inline-block;margin-top:6px;font-size:12px;background:transparent;color:var(--fg);border:1px dashed var(--border);border-radius:8px;padding:4px 8px}
 
-  /* Toast */
   .toast{
     position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
     background:var(--toast-bg); color:var(--toast-fg);
@@ -226,18 +232,21 @@
 <body class="">
 <header>
   <div class="toolbar">
-    <!-- Tema seçici -->
+    <!-- Tema seçici (toggle kaldırıldı) -->
     <select id="themeSelect" class="theme-select" aria-label="Tema seçimi">
       <option value="">Koyu</option>
       <option value="light">Açık</option>
       <option value="ocean">Okyanus</option>
       <option value="forest">Orman</option>
     </select>
-    <button class="theme-toggle" id="themeToggle" aria-label="Tema toggle">🌓</button>
   </div>
-  <h2>🎣 Balık Avı Paneli</h2>
-  <!-- BÜYÜK rozet: Şehir + Bölge -->
-  <div class="region-inline" id="regionInline">📍 — • —</div>
+  <h2>
+    🎣 Balık Avı Paneli
+    <!-- Başlıktaki tıklanabilir konum ikonu -->
+    <span id="locateIcon" class="locate-icon" role="button" aria-label="Konumumu kullan" title="Konumumu kullan">📍</span>
+  </h2>
+  <!-- BÜYÜK rozet: Şehir + Bölge (tıklanabilir) -->
+  <div class="region-inline" id="regionInline" role="button" tabindex="0" aria-label="Mevcut konuma git">📍 — • —</div>
 </header>
 
 <div class="location-panel">
@@ -252,7 +261,6 @@
     <select id="dateSelect" aria-label="Tarih seçimi"></select>
 
     <button id="searchButton" class="btn-search" aria-label="Ara">Ara</button>
-    <button id="locateMe" aria-label="Benim konumum">📍</button>
   </div>
 </div>
 
@@ -280,14 +288,10 @@
 
 <!-- ✅ Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="/* SRI hash buraya */"
-  crossorigin="anonymous"></script> -->
 
 <script>
 /* === Yardımcılar === */
 function pad2(n){ return String(n).padStart(2,'0'); }
-function fmtRangeLabel(startHour, endHour){ return `${pad2(startHour)}:00 - ${pad2(endHour)}:00`; }
 function fishIconCount(score){
   if (score >= 90) return 5;
   if (score >= 80) return 4;
@@ -297,7 +301,6 @@ function fishIconCount(score){
   return 0;
 }
 function fishIcons(score){ return '🐟'.repeat(fishIconCount(score)); }
-/* Güvenli metin kaçışlayıcı */
 function escapeHTML(s){
   if (s == null) return '';
   return String(s)
@@ -307,7 +310,6 @@ function escapeHTML(s){
     .replaceAll('"','&quot;')
     .replaceAll("'",'&#39;');
 }
-/* Toast */
 function showToast(msg, type='info'){
   const el = document.createElement('div');
   el.className = 'toast' + (type==='error' ? ' error' : '');
@@ -315,7 +317,6 @@ function showToast(msg, type='info'){
   document.body.appendChild(el);
   setTimeout(()=>{ el.remove(); }, 3000);
 }
-/* 3 saatlik slotlar */
 function buildThreeHourSlots() {
   const make = (startHour) => ({
     t: `${pad2(startHour)}:00 - ${pad2(startHour + 3)}:00`,
@@ -324,20 +325,18 @@ function buildThreeHourSlots() {
   });
   return [ make(0), make(3), make(6), make(9), make(12), make(15), make(18), make(21) ];
 }
-/* Dinamik zaman etiketi (güneş doğumu/batımı bazlı) */
 function labelBySunClock(hour, sunriseStr, sunsetStr) {
   const toMin = s => { const [H,M] = String(s||'06:00').split(':').map(Number); return H*60 + M; };
   const hMin = hour*60;
   const sr = sunriseStr ? toMin(sunriseStr) : 6*60;
   const ss = sunsetStr ? toMin(sunsetStr) : 18*60;
-  const twilightWindow = 60; // ±60 dk = alacakaranlık
+  const twilightWindow = 60;
   if (hMin < sr - twilightWindow || hMin > ss + twilightWindow) return "GECE";
   if (Math.abs(hMin - sr) <= twilightWindow || Math.abs(hMin - ss) <= twilightWindow) return "ALACAKARANLIK";
   return "GÜNDÜZ";
 }
 
-/* === Tema yönetimi === */
-const themeToggle = document.getElementById('themeToggle');
+/* === Tema yönetimi (toggle kaldırıldı) === */
 const themeSelect = document.getElementById('themeSelect');
 function applyThemeClass(cls){
   document.body.classList.remove('light','ocean','forest');
@@ -349,12 +348,6 @@ function applyThemeClass(cls){
   themeSelect.value = saved;
   applyThemeClass(saved);
 })();
-themeToggle.addEventListener('click', ()=>{
-  const isLight = document.body.classList.contains('light');
-  const next = isLight ? '' : 'light';
-  themeSelect.value = next;
-  applyThemeClass(next);
-});
 themeSelect.addEventListener('change', (e)=> applyThemeClass(e.target.value));
 
 /* === Debounce === */
@@ -386,6 +379,8 @@ const App = {
     document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') UIModule.closeModal(); });
     sizeLayout();
     setupModalInteractions();
+    setupHeaderLocateIcon();
+    setupRegionInline(); // ✅ Bölge rozeti tıklanınca mevcut konuma git
   },
 
   populateDateSelect() {
@@ -412,7 +407,6 @@ const App = {
         datalist.innerHTML = '';
         (data.results||[]).slice(0,5).forEach(r=>{
           const opt = document.createElement('option');
-          // Value olarak sadece isim, ülke kodunu parantez içinde ekliyoruz
           opt.value = `${r.name}${r.country_code ? ' ('+r.country_code+')' : ''}`;
           datalist.appendChild(opt);
         });
@@ -471,7 +465,7 @@ const App = {
   }
 };
 
-/* === Data (özet) — bölgeler önceki mantıkla === */
+/* === Data (fishes), season & moon === */
 const DataModule = {
   fishes: [
     { name:"Levrek", regions:["Batı","Orta","Doğu"], seasons:["Kış","İlkbahar"], seaTemp:[9,18], airTemp:[5,18], windRange:[5,25], wave:[0.4,1.4], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GECE", prefersRain:true, takim:`Spinning 2.7–3.0 m (10–30 g), PE 1.0–1.2, FC 0.28–0.35.`, yem:`Canlı yemlik, fileto, minnow/silikon/jig.` },
@@ -569,7 +563,6 @@ const APIModule = {
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,surface_pressure,cloud_cover,precipitation_probability&start_date=${dateStr}&end_date=${dateStr}&timezone=auto&wind_speed_unit=kmh`;
     const marineUrl  = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=sea_surface_temperature,wave_height&start_date=${dateStr}&end_date=${dateStr}&timezone=auto`;
 
-    // 📦 Basit önbellek (lokasyon + tarih)
     const cacheKey = `wx:${lat.toFixed(3)},${lon.toFixed(3)}:${dateStr}`;
     try{
       const cached = localStorage.getItem(cacheKey);
@@ -589,14 +582,12 @@ const APIModule = {
       const wData=await wRes.json(), mData=await mRes.json();
       if(!wData?.hourly?.time?.length) throw new Error("Hava verisi yok");
 
-      // Marine verisi yoksa fallback
       if(!mData?.hourly?.time?.length){
         mData.hourly = { time: wData.hourly.time.slice(),
           sea_surface_temperature: wData.hourly.time.map(()=>18),
           wave_height: wData.hourly.time.map(()=>0.3) };
       }
 
-      // Önbelleğe yaz
       try { localStorage.setItem(cacheKey, JSON.stringify({ wData, mData })); } catch (_){}
 
       this.processData(wData, mData, targetDate);
@@ -623,8 +614,7 @@ const APIModule = {
       wave:mData.hourly.wave_height?.[i] ?? 0.3
     }));
 
-    // 3 saatlik slotların env ortalamaları
-    this.slots = buildThreeHourSlots(); // sabit 8 slot
+    this.slots = buildThreeHourSlots();
     this.slots.forEach(slot=>{
       const relevant=hourly.filter(d=>slot.hours.includes(d.time.getHours()));
       if(!relevant.length) return;
@@ -643,7 +633,6 @@ const APIModule = {
         selectedDate: targetDate.toLocaleDateString('tr-TR',{weekday:'long', day:'numeric', month:'long'}),
         sunrise, sunset
       };
-      // Dinamik zaman etiketi: slot merkez saatine göre
       const centerHour = Math.round((slot.hours[0] + slot.hours[2]) / 2);
       slot.timeLabel = labelBySunClock(centerHour, sunrise, sunset);
     });
@@ -667,22 +656,6 @@ const MapModule = {
     this.setMarker({lat:App.currentLat,lng:App.currentLon}, App.currentLocationName);
     this.map.on('click', e=>{ this.setMarker(e.latlng,"Seçilen Konum"); App.setLocation(e.latlng.lat, e.latlng.lng, "Seçilen Konum"); });
     setTimeout(sizeLayout, 100);
-
-    // 📍 Benim konumum butonu
-    const btn = document.getElementById('locateMe');
-    btn.addEventListener('click', () => {
-      if (!navigator.geolocation) { showToast("Tarayıcınız konum desteği sağlamıyor.", 'error'); return; }
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const { latitude, longitude } = pos.coords;
-          this.map.setView([latitude, longitude], 11);
-          this.setMarker({ lat: latitude, lng: longitude }, "Benim Konumum");
-          App.setLocation(latitude, longitude, "Benim Konumum");
-        },
-        err => showToast("Konum alınamadı: " + err.message, 'error'),
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
-    });
   },
   setMarker(latlng, popupText=""){
     if(this.marker) this.map.removeLayer(this.marker);
@@ -693,7 +666,7 @@ const MapModule = {
   async searchLocation(q){
     try{
       const res=await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=tr`, 12000);
-      const data=await res.json();
+    const data=await res.json();
       if(data.results && data.results[0]){
         const best=data.results[0]; const {latitude, longitude, name, country_code}=best;
         this.map.setView([latitude, longitude], 10);
@@ -842,7 +815,7 @@ const UIModule = {
   }
 };
 
-/* === Dikey yerleşim: kart alanını ekrana sığdır === */
+/* === Dikey yerleşim === */
 function sizeLayout(){
   const vh = window.innerHeight;
   const headerH = document.querySelector('header')?.getBoundingClientRect().height || 0;
@@ -855,26 +828,23 @@ function sizeLayout(){
 }
 window.addEventListener('load', sizeLayout);
 window.addEventListener('resize', sizeLayout);
-/* Performans: ResizeObserver ile otomatik tetikleme */
 if (window.ResizeObserver) {
   const ro = new ResizeObserver(()=> sizeLayout());
   ro.observe(document.body);
 }
 
-/* === Modal erişilebilirliği ve kapatma davranışları === */
+/* === Modal erişilebilirliği === */
 function setupModalInteractions(){
   const modal = document.getElementById('modal');
   const sheet = document.getElementById('modalSheet');
   const closeBtn = document.getElementById('modalClose');
 
-  // Overlay tıklaması ile kapat
   modal.addEventListener('click', (e) => {
     if (e.target.id === 'modal') UIModule.closeModal();
   });
 
   closeBtn.addEventListener('click', () => UIModule.closeModal());
 
-  // Odak tuzağı: Tab ile sheet dışına çıkmayı engelle
   sheet.addEventListener('keydown', (e) => {
     if (e.key !== 'Tab') return;
     const focusable = sheet.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
@@ -885,6 +855,69 @@ function setupModalInteractions(){
       if (document.activeElement === first) { last.focus(); e.preventDefault(); }
     } else {
       if (document.activeElement === last) { first.focus(); e.preventDefault(); }
+    }
+  });
+}
+
+/* === Başlıktaki konum ikonu davranışı === */
+function setupHeaderLocateIcon(){
+  const icon = document.getElementById('locateIcon');
+  if (!icon) return;
+  icon.addEventListener('click', () => {
+    if (!navigator.geolocation) { showToast("Tarayıcınız konum desteği sağlamıyor.", 'error'); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude, longitude } = pos.coords;
+        if (MapModule?.map?.flyTo) {
+          MapModule.map.flyTo([latitude, longitude], 12, { duration: 0.6 });
+        } else {
+          MapModule.map.setView([latitude, longitude], 12);
+        }
+        MapModule.setMarker({ lat: latitude, lng: longitude }, "Benim Konumum");
+        App.setLocation(latitude, longitude, "Benim Konumum");
+      },
+      err => showToast("Konum alınamadı: " + err.message, 'error'),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+}
+
+/* === Bölge rozeti davranışı: mevcut konuma git === */
+function setupRegionInline(){
+  const regionEl = document.getElementById('regionInline');
+  if (!regionEl) return;
+
+  const goToCurrent = () => {
+    try {
+      const lat = App.currentLat, lon = App.currentLon;
+      const name = App.currentLocationName || "Mevcut Konum";
+
+      if (MapModule?.map?.flyTo) {
+        MapModule.map.flyTo([lat, lon], 12, { duration: 0.6 });
+      } else {
+        MapModule.map.setView([lat, lon], 12);
+      }
+
+      if (!MapModule.marker) {
+        MapModule.setMarker({lat, lng: lon}, name);
+      } else {
+        MapModule.marker.setLatLng([lat, lon]);
+        MapModule.marker.bindPopup(escapeHTML(name)).openPopup();
+      }
+
+      // Hafif görsel geri bildirim
+      regionEl.style.boxShadow = "0 0 0 6px rgba(37,99,235,0.25)";
+      setTimeout(()=> regionEl.style.boxShadow = "", 400);
+    } catch (e) {
+      showToast("Mevcut konuma gidilemedi.", "error");
+    }
+  };
+
+  regionEl.addEventListener('click', goToCurrent);
+  regionEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      goToCurrent();
     }
   });
 }
