@@ -17,10 +17,7 @@
 ">
 
 <!-- ✅ Leaflet CSS -->
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <style>
   :root{
@@ -89,10 +86,41 @@
   }
   h2{margin:0;font-size:22px; display:flex; align-items:center; gap:8px;}
 
-  /* Başlıktaki konum ikonu (tıklanabilir ve animasyonlu) */
+  /* Toolbar: sadece tema seçici */
+  .toolbar{
+    position:absolute; top:12px; right:12px; display:flex; gap:8px; align-items:center;
+  }
+  .theme-select{
+    background:var(--panel); color:var(--fg); border:1px solid var(--border);
+    border-radius:10px; padding:8px 10px; font-size:14px; cursor:pointer;
+  }
+
+  /* Bölge rozeti (tıklanabilir) */
+  .region-inline{
+    display:inline-flex; align-items:center; gap:10px;
+    background:var(--region-bg); border:2px solid var(--region-bd); color:var(--fg);
+    border-radius:999px; padding:8px 14px; font-size:14px; font-weight:600;
+    box-shadow:0 4px 12px rgba(0,0,0,.25);
+    cursor:pointer; transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .region-inline:hover{ transform: translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.35); }
+  .region-inline:active{ transform: scale(0.98); }
+  .region-inline:focus{ outline:none; box-shadow:0 0 0 3px rgba(37,99,235,.35); }
+
+  /* Rozet içi yerleşim: [📍 konum ikonu] [bölge] [şehir] */
+  .region-layout{
+    display:inline-flex; align-items:center; gap:10px;
+  }
+  .region-text{
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .region-chip{ font-weight:700; }
+  .city-chip{ opacity:.95; }
+
+  /* Rozet içindeki konum ikonu (tıklanabilir ve animasyonlu) */
   .locate-icon{
     display:inline-flex; align-items:center; justify-content:center;
-    width:28px; height:28px; border-radius:50%;
+    width:24px; height:24px; border-radius:50%;
     background:rgba(255,255,255,0.12); border:1px solid var(--border);
     cursor:pointer; transition:transform .2s, box-shadow .2s, background .2s;
     position:relative;
@@ -108,29 +136,8 @@
   }
   @keyframes pulse{
     0%{ box-shadow:0 0 0 0 rgba(37,99,235,0.6); }
-    70%{ box-shadow:0 0 0 14px rgba(37,99,235,0); }
+    70%{ box-shadow:0 0 0 12px rgba(37,99,235,0); }
     100%{ box-shadow:0 0 0 0 rgba(37,99,235,0); }
-  }
-
-  /* Bölge rozeti (tıklanabilir) */
-  .region-inline{
-    display:inline-flex; align-items:center; gap:10px;
-    background:var(--region-bg); border:2px solid var(--region-bd); color:var(--fg);
-    border-radius:999px; padding:8px 14px; font-size:14px; font-weight:600;
-    box-shadow:0 4px 12px rgba(0,0,0,.25);
-    cursor:pointer; transition: transform .15s ease, box-shadow .15s ease;
-  }
-  .region-inline:hover{ transform: translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.35); }
-  .region-inline:active{ transform: scale(0.98); }
-  .region-inline:focus{ outline:none; box-shadow:0 0 0 3px rgba(37,99,235,.35); }
-
-  /* Toolbar: sadece tema seçici */
-  .toolbar{
-    position:absolute; top:12px; right:12px; display:flex; gap:8px; align-items:center;
-  }
-  .theme-select{
-    background:var(--panel); color:var(--fg); border:1px solid var(--border);
-    border-radius:10px; padding:8px 10px; font-size:14px; cursor:pointer;
   }
 
   .location-panel{padding:16px;background:var(--panel);display:flex;flex-direction:column;gap:12px}
@@ -165,6 +172,7 @@
     padding:0 16px 16px; display:grid; gap:16px;
     grid-template-columns: repeat(1, minmax(280px, 1fr));
     overflow:auto; -webkit-overflow-scrolling:touch;
+    position:relative;
   }
   @media (min-width:768px){
     .cards{ padding:0 24px 24px; grid-template-columns: repeat(2, minmax(300px, 1fr)); gap:18px; }
@@ -227,12 +235,39 @@
     border:1px solid var(--border); min-width:240px; text-align:center;
   }
   .toast.error{ background:var(--toast-error); color:#fff; }
+
+  /* 📱 Mobil scroll ipucu (kartların üst kısmında) */
+  .scroll-hint{
+    position:absolute; top:-8px; left:0; right:0; height:44px;
+    pointer-events:none; display:none;
+  }
+  .scroll-hint .fade{
+    position:absolute; inset:0;
+    background:linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,0));
+    border-radius:12px;
+  }
+  .scroll-hint .msg{
+    position:absolute; top:4px; left:50%; transform:translateX(-50%);
+    background:rgba(17,24,39,.8); color:#fff; font-size:12px; padding:6px 10px;
+    border-radius:999px; border:1px solid rgba(255,255,255,.15);
+    display:flex; align-items:center; gap:6px;
+  }
+  .scroll-hint .chev{
+    animation:bounce 1.2s infinite;
+  }
+  @keyframes bounce{
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(4px); }
+  }
+  @media (max-width:767px){
+    .scroll-hint{ display:block; }
+  }
 </style>
 </head>
 <body class="">
 <header>
   <div class="toolbar">
-    <!-- Tema seçici (toggle kaldırıldı) -->
+    <!-- Tema seçici -->
     <select id="themeSelect" class="theme-select" aria-label="Tema seçimi">
       <option value="">Koyu</option>
       <option value="light">Açık</option>
@@ -240,18 +275,24 @@
       <option value="forest">Orman</option>
     </select>
   </div>
-  <h2>
-    🎣 Balık Avı Paneli
-    <!-- Başlıktaki tıklanabilir konum ikonu -->
-    <span id="locateIcon" class="locate-icon" role="button" aria-label="Konumumu kullan" title="Konumumu kullan">📍</span>
-  </h2>
-  <!-- BÜYÜK rozet: Şehir + Bölge (tıklanabilir) -->
-  <div class="region-inline" id="regionInline" role="button" tabindex="0" aria-label="Mevcut konuma git">📍 — • —</div>
+  <h2>🎣 Balık Avı Paneli</h2>
+
+  <!-- 📍 Bölge rozeti: [ikon] [Batı Karadeniz] – [Amasra] -->
+  <div class="region-inline" id="regionInline" role="button" tabindex="0" aria-label="Mevcut konuma git">
+    <div class="region-layout">
+      <span id="regionLocateIcon" class="locate-icon" role="button" aria-label="Konumumu kullan" title="Konumumu kullan">📍</span>
+      <span class="region-text">
+        <span id="regionName" class="region-chip">Batı Karadeniz</span>
+        <span>–</span>
+        <span id="cityName" class="city-chip">Amasra</span>
+      </span>
+    </div>
+  </div>
 </header>
 
 <div class="location-panel">
   <div class="search-row">
-    <input class="search-input" type="text" id="locationInput" placeholder="Şehir/İlçe girin (ör: Bartın)" list="locationSuggestions" aria-label="Lokasyon arama">
+    <input class="search-input" type="text" id="locationInput" placeholder="Şehir/İlçe girin (ör: Amasra)" list="locationSuggestions" aria-label="Lokasyon arama">
     <datalist id="locationSuggestions"></datalist>
 
     <select id="recentLocations" aria-label="Son Lokasyonlar">
@@ -267,7 +308,13 @@
 <div id="map"></div>
 <div id="loading" role="status" aria-live="polite">Veriler yükleniyor, lütfen bekleyin...</div>
 
-<div class="cards" id="cards"></div>
+<!-- 📱 Mobil scroll ipucu konteyner -->
+<div class="cards" id="cards">
+  <div class="scroll-hint" id="scrollHint">
+    <div class="fade"></div>
+    <div class="msg">Aşağı kaydırın <span class="chev">⬇️</span></div>
+  </div>
+</div>
 
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="slotTitle">
   <div class="sheet" tabindex="-1" id="modalSheet">
@@ -304,11 +351,8 @@ function fishIcons(score){ return '🐟'.repeat(fishIconCount(score)); }
 function escapeHTML(s){
   if (s == null) return '';
   return String(s)
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;')
-    .replaceAll('"','&quot;')
-    .replaceAll("'",'&#39;');
+    .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
+    .replaceAll('"','&quot;').replaceAll("'",'&#39;');
 }
 function showToast(msg, type='info'){
   const el = document.createElement('div');
@@ -321,7 +365,7 @@ function buildThreeHourSlots() {
   const make = (startHour) => ({
     t: `${pad2(startHour)}:00 - ${pad2(startHour + 3)}:00`,
     hours: [startHour, startHour + 1, startHour + 2],
-    timeLabel: "GÜNDÜZ" // Dinamik olarak güncellenecek (güneş saatine göre)
+    timeLabel: "GÜNDÜZ"
   });
   return [ make(0), make(3), make(6), make(9), make(12), make(15), make(18), make(21) ];
 }
@@ -336,7 +380,7 @@ function labelBySunClock(hour, sunriseStr, sunsetStr) {
   return "GÜNDÜZ";
 }
 
-/* === Tema yönetimi (toggle kaldırıldı) === */
+/* === Tema yönetimi === */
 const themeSelect = document.getElementById('themeSelect');
 function applyThemeClass(cls){
   document.body.classList.remove('light','ocean','forest');
@@ -359,14 +403,14 @@ const RegionModule = {
   getRegion(lat, lon){ if (lon < 35.5) return "Batı"; if (lon < 38.2) return "Orta"; return "Doğu"; },
   updateInline(cityText){
     const regionText = this.textMap[App.currentRegion] || "—";
-    const el = document.getElementById('regionInline');
-    el.textContent = `📍 ${cityText || '—'} • ${regionText}`;
+    document.getElementById('regionName').textContent = regionText;
+    document.getElementById('cityName').textContent = cityText || '—';
   }
 };
 
 /* === App === */
 const App = {
-  currentLat: 41.64, currentLon: 32.34, currentDateOffset: 0, currentLocationName: "Bartın", currentRegion: "Batı",
+  currentLat: 41.65, currentLon: 32.38, currentDateOffset: 0, currentLocationName: "Amasra", currentRegion: "Batı",
 
   init() {
     this.currentRegion = RegionModule.getRegion(this.currentLat, this.currentLon);
@@ -379,8 +423,9 @@ const App = {
     document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') UIModule.closeModal(); });
     sizeLayout();
     setupModalInteractions();
-    setupHeaderLocateIcon();
-    setupRegionInline(); // ✅ Bölge rozeti tıklanınca mevcut konuma git
+    setupRegionInline();       // Rozete tıklayınca mevcut konuma odakla
+    setupRegionLocateIcon();   // Rozet içindeki 📍 ikon ile geolokasyon al
+    setupScrollHint();         // Mobil scroll ipucu
   },
 
   populateDateSelect() {
@@ -465,7 +510,7 @@ const App = {
   }
 };
 
-/* === Data (fishes), season & moon === */
+/* === Data === */
 const DataModule = {
   fishes: [
     { name:"Levrek", regions:["Batı","Orta","Doğu"], seasons:["Kış","İlkbahar"], seaTemp:[9,18], airTemp:[5,18], windRange:[5,25], wave:[0.4,1.4], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GECE", prefersRain:true, takim:`Spinning 2.7–3.0 m (10–30 g), PE 1.0–1.2, FC 0.28–0.35.`, yem:`Canlı yemlik, fileto, minnow/silikon/jig.` },
@@ -473,23 +518,23 @@ const DataModule = {
     { name:"Eşkina", regions:["Batı","Orta","Doğu"], seasons:["Kış","Tüm yıl"], seaTemp:[14,21], airTemp:[8,18], windRange:[0,15], wave:[0,0.5], pressure:"low", moon:["Dolunay"], time:"GECE", prefersRain:true, takim:`Dip 0.35–0.45; 60–120 g; iğne #2–#1/0.`, yem:`Teke, karides; kalamar, istavrit fileto.` },
     { name:"Granyoz", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[20,27], airTemp:[22,34], windRange:[0,18], wave:[0.3,1.0], pressure:"stable", moon:["Dolunay"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Ağır jig 40–80 g; PE 1.5–2.0.`, yem:`Canlı küçük balık; kalamar; metal/silikon.` },
     { name:"İzmarit", regions:["Batı","Orta","Doğu"], seasons:["İlkbahar","Yaz"], seaTemp:[15,24], airTemp:[14,24], windRange:[0,12], wave:[0,0.7], pressure:"low", moon:["Yeni Ay"], time:"GÜNDÜZ", prefersRain:false, takim:`Şamandıra/LRF UL‑L; iğne #8–#10.`, yem:`Solucan, mamun, midye; mikro silikon.` },
-    { name:"İspari", regions:["Batı","Orta","Doğu"], seasons:["Yaz"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,12], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`Hafif dip; iğne #6–#8.`, yem:`Mamun, boru, karides, midye.` },
-    { name:"Zargana", regions:["Batı","Orta","Doğu"], seasons:["Yaz"], seaTemp:[20,27], airTemp:[24,34], windRange:[0,12], wave:[0,0.5], pressure:"stable", moon:["Yeni Ay"], time:"GÜNDÜZ", prefersRain:false, takim:`Şamandıra/Spin; mini kaşık 5–12 g.`, yem:`Şerit/i̇pek; parlak kaşık.` },
-    { name:"İstavrit", regions:["Batı","Orta","Doğu"], seasons:["Sonbahar","Kış"], seaTemp:[10,18], airTemp:[8,18], windRange:[10,28], wave:[0.4,1.4], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"GECE_ALACAKARANLIK", prefersRain:true, takim:`Çapari 7–10’lu; 15–30 g kurşun.`, yem:`Tüyler; mikro silikon; minik hamsi.` },
-    { name:"Sargoz", regions:["Batı","Orta"], seasons:["İlkbahar","Yaz"], seaTemp:[15,23], airTemp:[15,27], windRange:[0,18], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Hafif dip/LRF; iğne #4–#6.`, yem:`Mamun, sülünez, midye.` },
-    { name:"Karagöz", regions:["Batı","Orta"], seasons:["İlkbahar","Sonbahar"], seaTemp:[15,24], airTemp:[15,28], windRange:[0,15], wave:[0,0.6], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip/şamandıra.`, yem:`Mamun, boru, karides, midye.` },
-    { name:"Kefal", regions:["Batı","Orta","Doğu"], seasons:["İlkbahar","Sonbahar"], seaTemp:[12,24], airTemp:[14,24], windRange:[0,15], wave:[0,0.4], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ", prefersRain:true, takim:`Şamandıra 3.0–3.9 m; iğne #8–#12.`, yem:`Ekmek/hamur; mamun, boru.` },
-    { name:"Kırlangıç", regions:["Batı","Orta","Doğu"], seasons:["Kış","İlkbahar"], seaTemp:[11,19], airTemp:[6,18], windRange:[10,28], wave:[0.3,1.0], pressure:"low", moon:["Yeni Ay"], time:"GECE", prefersRain:true, takim:`Dip ağır 80–120 g.`, yem:`Karides, fileto, kalamar.` },
-    { name:"Barbunya", regions:["Batı","Orta"], seasons:["Yaz"], seaTemp:[18,25], airTemp:[20,30], windRange:[0,12], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"ALACAKARANLIK", prefersRain:false, takim:`İnce dip 30–60 g.`, yem:`Solucan, mamun, midye, boru.` },
-    { name:"Tekir", regions:["Doğu"], seasons:["İlkbahar","Yaz","Sonbahar"], seaTemp:[16,24], airTemp:[16,26], windRange:[0,15], wave:[0,0.8], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`İnce dip 20–40 g.`, yem:`Solucan, boru kurdu, mamun.` },
-    { name:"İskorpit", regions:["Batı","Orta","Doğu"], seasons:["Tüm yıl"], seaTemp:[10,24], airTemp:[8,28], windRange:[0,22], wave:[0.4,1.2], pressure:"any", moon:["Dolunay"], time:"KARMA", prefersRain:false, takim:`Dip/Zoka 50–100 g.`, yem:`İstavrit fileto, karides.` },
-    { name:"Kalkan", regions:["Batı","Orta"], seasons:["Kış","İlkbahar"], seaTemp:[8,17], airTemp:[4,18], windRange:[0,15], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"GECE", prefersRain:false, takim:`Surf ağır; 100–150 g.`, yem:`Canlı istavrit; geniş şerit.` },
-    { name:"Palamut", regions:["Batı","Orta"], seasons:["Sonbahar"], seaTemp:[16,23], airTemp:[14,22], windRange:[10,30], wave:[0.5,1.5], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Spin/Jig 30–60 g.`, yem:`Metal jig; minnow 11–14 cm.` },
-    { name:"Mezgit", regions:["Orta","Doğu"], seasons:["Tüm yıl"], seaTemp:[8,18], airTemp:[6,18], windRange:[0,20], wave:[0,1.0], pressure:"any", moon:["Dolunay"], time:"GÜNDÜZ_GECE", prefersRain:false, takim:`Dip çoklu köstek.`, yem:`Solucan, mamun, balık parçaları.` },
-    { name:"Uskumru", regions:["Batı","Orta"], seasons:["İlkbahar","Yaz"], seaTemp:[14,22], airTemp:[14,26], windRange:[10,30], wave:[0.5,1.2], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GÜNDÜZ", prefersRain:false, takim:`Jig/Kaşık 20–40 g.`, yem:`Metal jig/kaşık; minnow.` },
-    { name:"Kolyoz", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[14,23], airTemp:[14,24], windRange:[10,28], wave:[0.5,1.2], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Spin metal 20–40 g.`, yem:`Metal/kaşık; minnow.` },
-    { name:"Çupra", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[16,25], airTemp:[16,26], windRange:[0,15], wave:[0,0.6], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`Dip/Şamandıra ML.`, yem:`Kabuklular, midye, karides.` },
-    { name:"Mırmır", regions:["Doğu"], seasons:["Yaz","Sonbahar"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,15], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip 20–40 g.`, yem:`Boru kurdu, mamun, sülünez.` },
+    { name:"İspari", regions:["Batı","Orta","Doğu"], seasons:["Yaz"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,12], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`Hafif dip; iğne #6–#8.` , yem:`Mamun, boru, karides, midye.` },
+    { name:"Zargana", regions:["Batı","Orta","Doğu"], seasons:["Yaz"], seaTemp:[20,27], airTemp:[24,34], windRange:[0,12], wave:[0,0.5], pressure:"stable", moon:["Yeni Ay"], time:"GÜNDÜZ", prefersRain:false, takim:`Şamandıra/Spin; mini kaşık 5–12 g.` , yem:`Şerit/i̇pek; parlak kaşık.` },
+    { name:"İstavrit", regions:["Batı","Orta","Doğu"], seasons:["Sonbahar","Kış"], seaTemp:[10,18], airTemp:[8,18], windRange:[10,28], wave:[0.4,1.4], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"GECE_ALACAKARANLIK", prefersRain:true, takim:`Çapari 7–10’lu; 15–30 g kurşun.` , yem:`Tüyler; mikro silikon; minik hamsi.` },
+    { name:"Sargoz", regions:["Batı","Orta"], seasons:["İlkbahar","Yaz"], seaTemp:[15,23], airTemp:[15,27], windRange:[0,18], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Hafif dip/LRF; iğne #4–#6.` , yem:`Mamun, sülünez, midye.` },
+    { name:"Karagöz", regions:["Batı","Orta"], seasons:["İlkbahar","Sonbahar"], seaTemp:[15,24], airTemp:[15,28], windRange:[0,15], wave:[0,0.6], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip/şamandıra.` , yem:`Mamun, boru, karides, midye.` },
+    { name:"Kefal", regions:["Batı","Orta","Doğu"], seasons:["İlkbahar","Sonbahar"], seaTemp:[12,24], airTemp:[14,24], windRange:[0,15], wave:[0,0.4], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ", prefersRain:true, takim:`Şamandıra 3.0–3.9 m; iğne #8–#12.` , yem:`Ekmek/hamur; mamun, boru.` },
+    { name:"Kırlangıç", regions:["Batı","Orta","Doğu"], seasons:["Kış","İlkbahar"], seaTemp:[11,19], airTemp:[6,18], windRange:[10,28], wave:[0.3,1.0], pressure:"low", moon:["Yeni Ay"], time:"GECE", prefersRain:true, takim:`Dip ağır 80–120 g.` , yem:`Karides, fileto, kalamar.` },
+    { name:"Barbunya", regions:["Batı","Orta"], seasons:["Yaz"], seaTemp:[18,25], airTemp:[20,30], windRange:[0,12], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"ALACAKARANLIK", prefersRain:false, takim:`İnce dip 30–60 g.` , yem:`Solucan, mamun, midye, boru.` },
+    { name:"Tekir", regions:["Doğu"], seasons:["İlkbahar","Yaz","Sonbahar"], seaTemp:[16,24], airTemp:[16,26], windRange:[0,15], wave:[0,0.8], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`İnce dip 20–40 g.` , yem:`Solucan, boru kurdu, mamun.` },
+    { name:"İskorpit", regions:["Batı","Orta","Doğu"], seasons:["Tüm yıl"], seaTemp:[10,24], airTemp:[8,28], windRange:[0,22], wave:[0.4,1.2], pressure:"any", moon:["Dolunay"], time:"KARMA", prefersRain:false, takim:`Dip/Zoka 50–100 g.` , yem:`İstavrit fileto, karides.` },
+    { name:"Kalkan", regions:["Batı","Orta"], seasons:["Kış","İlkbahar"], seaTemp:[8,17], airTemp:[4,18], windRange:[0,15], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"GECE", prefersRain:false, takim:`Surf ağır; 100–150 g.` , yem:`Canlı istavrit; geniş şerit.` },
+    { name:"Palamut", regions:["Batı","Orta"], seasons:["Sonbahar"], seaTemp:[16,23], airTemp:[14,22], windRange:[10,30], wave:[0.5,1.5], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Spin/Jig 30–60 g.` , yem:`Metal jig; minnow 11–14 cm.` },
+    { name:"Mezgit", regions:["Orta","Doğu"], seasons:["Tüm yıl"], seaTemp:[8,18], airTemp:[6,18], windRange:[0,20], wave:[0,1.0], pressure:"any", moon:["Dolunay"], time:"GÜNDÜZ_GECE", prefersRain:false, takim:`Dip çoklu köstek.` , yem:`Solucan, mamun, balık parçaları.` },
+    { name:"Uskumru", regions:["Batı","Orta"], seasons:["İlkbahar","Yaz"], seaTemp:[14,22], airTemp:[14,26], windRange:[10,30], wave:[0.5,1.2], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GÜNDÜZ", prefersRain:false, takim:`Jig/Kaşık 20–40 g.` , yem:`Metal jig/kaşık; minnow.` },
+    { name:"Kolyoz", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[14,23], airTemp:[14,24], windRange:[10,28], wave:[0.5,1.2], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Spin metal 20–40 g.` , yem:`Metal/kaşık; minnow.` },
+    { name:"Çupra", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[16,25], airTemp:[16,26], windRange:[0,15], wave:[0,0.6], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`Dip/Şamandıra ML.` , yem:`Kabuklular, midye, karides.` },
+    { name:"Mırmır", regions:["Doğu"], seasons:["Yaz","Sonbahar"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,15], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip 20–40 g.` , yem:`Boru kurdu, mamun, sülünez.` },
     { name:"Somon", regions:[], seasons:["Tüm yıl"], seaTemp:[0,0], airTemp:[0,0], windRange:[0,0], wave:[0,0], pressure:"any", moon:["Yeni Ay"], time:"GÜNDÜZ", prefersRain:false, takim:`(Bilgi amaçlı)`, yem:`(Bilgi amaçlı)` }
   ],
   getSeason() {
@@ -649,7 +694,7 @@ const APIModule = {
 const MapModule = {
   map:null, marker:null,
   init(){
-    this.map = L.map('map').setView([App.currentLat, App.currentLon], 9);
+    this.map = L.map('map').setView([App.currentLat, App.currentLon], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       attribution:'&copy; OpenStreetMap contributors'
     }).addTo(this.map);
@@ -666,10 +711,10 @@ const MapModule = {
   async searchLocation(q){
     try{
       const res=await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=tr`, 12000);
-    const data=await res.json();
+      const data=await res.json();
       if(data.results && data.results[0]){
         const best=data.results[0]; const {latitude, longitude, name, country_code}=best;
-        this.map.setView([latitude, longitude], 10);
+        this.map.setView([latitude, longitude], 11);
         this.setMarker({lat:latitude,lng:longitude}, name);
         const nm = country_code ? `${name} (${country_code})` : name;
         App.setLocation(latitude, longitude, nm);
@@ -859,30 +904,7 @@ function setupModalInteractions(){
   });
 }
 
-/* === Başlıktaki konum ikonu davranışı === */
-function setupHeaderLocateIcon(){
-  const icon = document.getElementById('locateIcon');
-  if (!icon) return;
-  icon.addEventListener('click', () => {
-    if (!navigator.geolocation) { showToast("Tarayıcınız konum desteği sağlamıyor.", 'error'); return; }
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        const { latitude, longitude } = pos.coords;
-        if (MapModule?.map?.flyTo) {
-          MapModule.map.flyTo([latitude, longitude], 12, { duration: 0.6 });
-        } else {
-          MapModule.map.setView([latitude, longitude], 12);
-        }
-        MapModule.setMarker({ lat: latitude, lng: longitude }, "Benim Konumum");
-        App.setLocation(latitude, longitude, "Benim Konumum");
-      },
-      err => showToast("Konum alınamadı: " + err.message, 'error'),
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  });
-}
-
-/* === Bölge rozeti davranışı: mevcut konuma git === */
+/* === Rozet: mevcut konuma git === */
 function setupRegionInline(){
   const regionEl = document.getElementById('regionInline');
   if (!regionEl) return;
@@ -920,6 +942,66 @@ function setupRegionInline(){
       goToCurrent();
     }
   });
+}
+
+/* === Rozet içindeki konum ikonu: geolokasyon al === */
+function setupRegionLocateIcon(){
+  const icon = document.getElementById('regionLocateIcon');
+  if (!icon) return;
+  icon.addEventListener('click', (e) => {
+    e.stopPropagation(); // Rozet tıklamasını tetikleme
+    if (!navigator.geolocation) { showToast("Tarayıcınız konum desteği sağlamıyor.", 'error'); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude, longitude } = pos.coords;
+        if (MapModule?.map?.flyTo) {
+          MapModule.map.flyTo([latitude, longitude], 12, { duration: 0.6 });
+        } else {
+          MapModule.map.setView([latitude, longitude], 12);
+        }
+        MapModule.setMarker({ lat: latitude, lng: longitude }, "Benim Konumum");
+        App.setLocation(latitude, longitude, "Benim Konumum");
+      },
+      err => showToast("Konum alınamadı: " + err.message, 'error'),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+}
+
+/* === Mobil scroll ipucu === */
+function setupScrollHint(){
+  const hintEl = document.getElementById('scrollHint');
+  const cardsEl = document.getElementById('cards');
+  if (!hintEl || !cardsEl) return;
+
+  // İlk kez veya uzun aradan sonra göster (24 saat)
+  const key = 'fishingScrollHintShownAt';
+  const last = parseInt(localStorage.getItem(key) || '0', 10);
+  const now = Date.now();
+  const dayMs = 24*60*60*1000;
+
+  const shouldShow = (now - last) > dayMs;
+  if (shouldShow && window.matchMedia('(max-width: 767px)').matches) {
+    hintEl.style.display = 'block';
+    // Kullanıcı aşağı kaydırırsa gizle ve zamanı kaydet
+    const onScroll = () => {
+      if (cardsEl.scrollTop > 20) {
+        hintEl.style.display = 'none';
+        localStorage.setItem(key, String(now));
+        cardsEl.removeEventListener('scroll', onScroll);
+      }
+    };
+    cardsEl.addEventListener('scroll', onScroll);
+
+    // 6 saniye sonra kendiliğinden kaydet ve gizle (rahatsız etmemesi için)
+    setTimeout(()=>{
+      hintEl.style.display = 'none';
+      localStorage.setItem(key, String(now));
+      cardsEl.removeEventListener('scroll', onScroll);
+    }, 6000);
+  } else {
+    hintEl.style.display = 'none';
+  }
 }
 
 /* === Arama ve Paylaş === */
