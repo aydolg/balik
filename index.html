@@ -72,6 +72,7 @@
   }
   .locate-icon:hover{ transform:scale(1.08); box-shadow:0 0 0 3px rgba(37,99,235,.35); background:rgba(255,255,255,0.18); }
   .locate-icon:active{ transform:scale(0.95); }
+  .locate-icon:focus{ outline:none; box-shadow:0 0 0 3px rgba(37,99,235,.5); }
   .locate-icon::after{
     content:""; position:absolute; inset:-6px; border-radius:50%;
     box-shadow:0 0 0 0 var(--locate-ring); animation:pulse 2.2s infinite;
@@ -97,6 +98,7 @@
   .region-text{ display:inline-flex; align-items:center; gap:6px; }
   .region-chip{ font-weight:700; }
   .city-chip{ opacity:.95; }
+  .region-warn{ font-size:11px; opacity:.85; }
 
   /* ⚙️ Tema ikonu (sağ dış, yazısız) */
   .icon-btn{
@@ -137,6 +139,7 @@
     background:var(--accent); color:#fff; border:none; border-radius:12px; padding:12px 14px; font-size:16px; font-weight:700; cursor:pointer; transition:all .2s;
   }
   #searchButton:active{ transform:scale(0.98) }
+  #searchButton:disabled{ opacity:.6; cursor:progress; }
 
   /* Harita */
   #map{
@@ -238,7 +241,7 @@
   <!-- Başlık altı satır: SOL 📍 | ORTA ROZET | SAĞ ⚙️ -->
   <div class="region-row theme-menu-anchor" id="regionRow">
     <!-- Sol: Geolokasyon ikonu -->
-    <span id="regionLocateIcon" class="locate-icon" role="button" aria-label="Konumumu kullan" title="Konumumu kullan">📍</span>
+    <span id="regionLocateIcon" class="locate-icon" role="button" tabindex="0" aria-label="Konumumu kullan" title="Konumumu kullan">📍</span>
 
     <!-- Orta: Bölge rozeti -->
     <div class="region-inline" id="regionInline" role="button" tabindex="0" aria-label="Mevcut konuma git">
@@ -246,6 +249,7 @@
         <span id="regionName" class="region-chip">Batı Karadeniz</span>
         <span>–</span>
         <span id="cityName" class="city-chip">Amasra</span>
+        <span id="regionWarn" class="region-warn" style="display:none" title="Bu konum Karadeniz kıyı şeridi dışında görünüyor; tahminler güvenilir olmayabilir">⚠️</span>
       </span>
     </div>
 
@@ -310,6 +314,22 @@ const debounce=(fn,wait=250)=>{ let t; return (...args)=>{ clearTimeout(t); t=se
 function buildThreeHourSlots(){ const make=(s)=>({ t:`${pad2(s)}:00 - ${pad2(s+3)}:00`, hours:[s,s+1,s+2], timeLabel:"GÜNDÜZ" }); return [make(0),make(3),make(6),make(9),make(12),make(15),make(18),make(21)]; }
 function labelBySunClock(hour,sunriseStr,sunsetStr){ const toMin=s=>{ const [H,M]=String(s||'06:00').split(':').map(Number); return H*60+M; }; const hMin=hour*60; const sr=sunriseStr?toMin(sunriseStr):360; const ss=sunsetStr?toMin(sunsetStr):1080; const tw=60; if(hMin<sr-tw||hMin>ss+tw) return "GECE"; if(Math.abs(hMin-sr)<=tw||Math.abs(hMin-ss)<=tw) return "ALACAKARANLIK"; return "GÜNDÜZ"; }
 
+/* Tek balık türü zaman uygunluğunu kontrol eder.
+   "KARMA" tüm zaman dilimleriyle uyumludur (önceden hiçbir label ile eşleşmiyordu). */
+function fishTimeMatches(fishTime,label){
+  if(!fishTime) return false;
+  if(fishTime==="KARMA") return true;
+  return fishTime.includes(label);
+}
+
+/* Mevsime göre kaba varsayılan deniz suyu sıcaklığı / dalga yüksekliği.
+   Marine API veri döndürmediğinde önceki sabit 18°C/0.3m varsayımı yerine kullanılır. */
+function seasonalSeaDefaults(){
+  const season=DataModule.getSeason();
+  const table={ "Kış":{seaTemp:9,wave:0.6}, "İlkbahar":{seaTemp:14,wave:0.5}, "Yaz":{seaTemp:23,wave:0.3}, "Sonbahar":{seaTemp:17,wave:0.6} };
+  return table[season]||{seaTemp:16,wave:0.5};
+}
+
 /* === Tema menüsü (⚙️) === */
 const themeButton=document.getElementById('themeButton');
 const themeMenu=document.getElementById('themeMenu');
@@ -348,22 +368,32 @@ themeMenu.addEventListener('change',(e)=>{
   }
 });
 
-/* === Region === */
+/* === Region ===
+   Karadeniz kıyı şeridi kaba enlem/boylam sınırları içinde mi kontrol edilir.
+   Daha önce sadece boylam bakılıyordu; İç Anadolu ya da yurt dışından bir konum
+   sorgulansa bile sessizce bir bölgeye atanıp yanıltıcı tahminler üretiliyordu. */
+const REGION_BOUNDS = { latMin:40.3, latMax:42.2, lonMin:27.0, lonMax:42.0 };
 const RegionModule={
   textMap:{ "Batı":"Batı Karadeniz", "Orta":"Orta Karadeniz", "Doğu":"Doğu Karadeniz" },
   getRegion(lat,lon){ if(lon<35.5) return "Batı"; if(lon<38.2) return "Orta"; return "Doğu"; },
+  isWithinCoast(lat,lon){
+    return lat>=REGION_BOUNDS.latMin && lat<=REGION_BOUNDS.latMax && lon>=REGION_BOUNDS.lonMin && lon<=REGION_BOUNDS.lonMax;
+  },
   updateInline(cityText){
     const regionText=this.textMap[App.currentRegion]||"—";
     document.getElementById('regionName').textContent=regionText;
     document.getElementById('cityName').textContent=cityText||'—';
+    const warn=document.getElementById('regionWarn');
+    if(warn) warn.style.display = App.currentOutOfCoast ? 'inline' : 'none';
   }
 };
 
 /* === App === */
 const App={
-  currentLat:41.65, currentLon:32.38, currentDateOffset:0, currentLocationName:"Amasra", currentRegion:"Batı",
+  currentLat:41.65, currentLon:32.38, currentDateOffset:0, currentLocationName:"Amasra", currentRegion:"Batı", currentOutOfCoast:false,
   init(){
     this.currentRegion=RegionModule.getRegion(this.currentLat,this.currentLon);
+    this.currentOutOfCoast=!RegionModule.isWithinCoast(this.currentLat,this.currentLon);
     RegionModule.updateInline(this.currentLocationName);
     MapModule.init();
     this.loadRecentLocations();
@@ -376,6 +406,7 @@ const App={
     setupRegionInline();
     setupRegionLocateIcon();
     setupScrollHint();
+    CacheModule.cleanup();
   },
   populateDateSelect(){
     const select=document.getElementById('dateSelect'); select.innerHTML='';
@@ -389,29 +420,42 @@ const App={
     select.value=this.currentDateOffset;
     select.onchange=()=>this.updateForecast();
   },
+  /* Arama önerileri artık sadece metin değil, koordinatlarıyla birlikte saklanıyor.
+     Böylece kullanıcı bir öneriye tıkladığında "Ara" butonu geocoding'i tekrar
+     sorgulayıp farklı (yanlış) bir sonuç döndürmüyor. */
+  suggestionMap:{},
   bindSearchSuggestions(){
     const input=document.getElementById('locationInput');
     const datalist=document.getElementById('locationSuggestions');
     input.addEventListener('input', debounce(async (e)=>{
-      const q=e.target.value.trim(); if(!q){ datalist.innerHTML=''; return; }
+      const q=e.target.value.trim(); if(!q){ datalist.innerHTML=''; this.suggestionMap={}; return; }
       try{
         const res=await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=tr`,12000);
         const data=await res.json();
-        datalist.innerHTML='';
+        datalist.innerHTML=''; this.suggestionMap={};
         (data.results||[]).slice(0,5).forEach(r=>{
+          const label=`${r.name}${r.country_code?' ('+r.country_code+')':''}`;
+          this.suggestionMap[label]={lat:r.latitude,lon:r.longitude,name:r.name};
           const opt=document.createElement('option');
-          opt.value=`${r.name}${r.country_code?' ('+r.country_code+')':''}`;
+          opt.value=label;
           datalist.appendChild(opt);
         });
       }catch(err){/* sessiz */}
     },300));
   },
-  searchLocation(){ const q=document.getElementById('locationInput').value.trim(); if(!q) return; MapModule.searchLocation(q); },
+  searchLocation(){
+    const q=document.getElementById('locationInput').value.trim(); if(!q) return;
+    const match=this.suggestionMap[q];
+    if(match){ MapModule.applyResolvedLocation(match.lat,match.lon,match.name); return; }
+    MapModule.searchLocation(q);
+  },
   updateForecast(){ this.currentDateOffset=parseInt(document.getElementById('dateSelect').value); APIModule.fetchData(this.currentLat,this.currentLon,this.currentDateOffset); },
   setLocation(lat,lon,name="Seçilen Konum"){
     this.currentLat=lat; this.currentLon=lon; this.currentLocationName=name;
     this.currentRegion=RegionModule.getRegion(lat,lon);
+    this.currentOutOfCoast=!RegionModule.isWithinCoast(lat,lon);
     RegionModule.updateInline(name);
+    if(this.currentOutOfCoast){ showToast("Bu konum Karadeniz kıyı şeridi dışında görünüyor; tahminler güvenilir olmayabilir.",'error'); }
     this.saveRecentLocation(lat,lon,name);
     this.updateForecast();
     sizeLayout();
@@ -469,38 +513,90 @@ const DataModule={
     { name:"Uskumru", regions:["Batı","Orta"], seasons:["İlkbahar","Yaz"], seaTemp:[14,22], airTemp:[14,26], windRange:[10,30], wave:[0.5,1.2], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GÜNDÜZ", prefersRain:false, takim:`Jig/Kaşık 20–40 g.`, yem:`Metal jig/kaşık; minnow.` },
     { name:"Kolyoz", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[14,23], airTemp:[14,24], windRange:[10,28], wave:[0.5,1.2], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Spin metal 20–40 g.`, yem:`Metal/kaşık; minnow.` },
     { name:"Çupra", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[16,25], airTemp:[16,26], windRange:[0,15], wave:[0,0.6], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`Dip/Şamandıra ML.`, yem:`Kabuklular, midye, karides.` },
-    { name:"Mırmır", regions:["Doğu"], seasons:["Yaz","Sonbahar"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,15], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip 20–40 g.`, yem:`Boru kurdu, mamun, sülünez.` },
-    { name:"Somon", regions:[], seasons:["Tüm yıl"], seaTemp:[0,0], airTemp:[0,0], windRange:[0,0], wave:[0,0], pressure:"any", moon:["Yeni Ay"], time:"GÜNDÜZ", prefersRain:false, takim:`(Bilgi amaçlı)`, yem:`(Bilgi amaçlı)` }
+    { name:"Mırmır", regions:["Doğu"], seasons:["Yaz","Sonbahar"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,15], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip 20–40 g.`, yem:`Boru kurdu, mamun, sülünez.` }
+    /* Not: "Somon" türü kaldırıldı — Karadeniz'de doğal populasyonu bulunmadığı ve
+       regions:[] olması nedeniyle her bölgede yanıltıcı biçimde "nadir tür" olarak
+       listeleniyordu. */
   ],
   getSeason(){ const m=new Date().getMonth()+1; if([12,1,2].includes(m)) return "Kış"; if([3,4,5].includes(m)) return "İlkbahar"; if([6,7,8].includes(m)) return "Yaz"; return "Sonbahar"; },
-  getMoonPhase(){ let d=new Date(); let y=d.getUTCFullYear(), mo=d.getUTCMonth()+1, da=d.getUTCDate(); if(mo==1||mo==2){y--;mo+=12;} let a=Math.floor(y/100), b=Math.floor(a/4), c=2-a+b; let e=Math.floor(365.25*(y+4716)), f=Math.floor(30.6001*(mo+1)); let jd=c+da+e+f-1524.5, days=jd-2451549.5, nm=days/29.53058867, phase=(nm-Math.floor(nm))*29.53058867; if(phase<1.5) return "Yeni Ay"; if(phase<13.5) return "Hilal - İlk Dördün"; if(phase<16.5) return "Dolunay Civarı"; return "Son Dördün - Yeni Ay Civarı"; },
-  getMoonPhaseEmoji(){ let d=new Date(); let y=d.getUTCFullYear(), mo=d.getUTCMonth()+1, da=d.getUTCDate(); if(mo==1||mo==2){y--;mo+=12;} let a=Math.floor(y/100), b=Math.floor(a/4), c=2-a+b; let e=Math.floor(365.25*(y+4716)), f=Math.floor(30.6001*(mo+1)); let jd=c+da+e+f-1524.5, days=jd-2451549.5, nm=days/29.53058867, phase=(nm-Math.floor(nm))*29.53058867; if(phase<1.5) return "🌑"; if(phase<13.5) return "🌓"; if(phase<16.5) return "🌕"; return "🌗"; }
+  /* Ay evresi hesabı artık tek yerden yapılıyor; önceden getMoonPhase() ve
+     getMoonPhaseEmoji() aynı Julian gün hesabını iki kez tekrarlıyordu. */
+  _moonCache:null,
+  getMoonData(){
+    const todayKey=new Date().toDateString();
+    if(this._moonCache && this._moonCache.key===todayKey) return this._moonCache;
+    let d=new Date(); let y=d.getUTCFullYear(), mo=d.getUTCMonth()+1, da=d.getUTCDate();
+    if(mo==1||mo==2){ y--; mo+=12; }
+    let a=Math.floor(y/100), b=Math.floor(a/4), c=2-a+b;
+    let e=Math.floor(365.25*(y+4716)), f=Math.floor(30.6001*(mo+1));
+    let jd=c+da+e+f-1524.5, days=jd-2451549.5, nm=days/29.53058867, phase=(nm-Math.floor(nm))*29.53058867;
+    let text, emoji;
+    if(phase<1.5){ text="Yeni Ay"; emoji="🌑"; }
+    else if(phase<13.5){ text="Hilal - İlk Dördün"; emoji="🌓"; }
+    else if(phase<16.5){ text="Dolunay Civarı"; emoji="🌕"; }
+    else{ text="Son Dördün - Yeni Ay Civarı"; emoji="🌗"; }
+    this._moonCache={ key:todayKey, phase, text, emoji };
+    return this._moonCache;
+  },
+  getMoonPhase(){ return this.getMoonData().text; },
+  getMoonPhaseEmoji(){ return this.getMoonData().emoji; }
 };
 
-/* === Skor === */
+/* === Skor ===
+   Ağırlıklar toplamı önceden 108 idi (season 20 + time 15 + pressure 8 + moon 8 +
+   rain 8 + seaTemp 20 + airTemp 12 + wave 7 + wind 10) ve Math.min(100,...) ile
+   kırpılıyordu; bu da üst uçta birçok türün "tavan yapıp" birbirinden
+   ayrılamamasına yol açıyordu. Ağırlıklar artık tam olarak 100'e toplanacak
+   şekilde yeniden dağıtıldı. */
 const ScoringModule={
+  weights:{ season:18, time:14, pressure:7, moon:7, rain:7, seaTemp:19, airTemp:12, wave:7, wind:9 },
   color(sc){ return sc>90?'#2563eb':sc>70?'#16a34a':sc>50?'#f59e0b':'#dc2626'; },
   gradedRangeScore(v,min,max,p,tol=0.15){ if(max<=min||p===0||v==null) return 0; const r=max-min, s=min+tol*r, e=max-tol*r; if(v>=s&&v<=e) return p; if((v>=min-tol*r&&v<s)||(v>e&&v<=max+tol*r)) return p*0.5; return 0; },
   calculate(f,env,label){
+    const w=this.weights;
     let s=0, season=DataModule.getSeason(), moon=DataModule.getMoonPhase();
-    if(f.seasons.includes(season)||f.seasons.includes("Tüm yıl")) s+=20;
-    if(f.time.includes(label)) s+=15;
-    if(f.pressure==="low"&&env.pressure<1013) s+=8;
-    else if(f.pressure==="stable"&&env.pressure>=1012&&env.pressure<=1018) s+=8;
-    else if(f.pressure==="any") s+=4;
-    if(f.moon?.some?.(m=>moon.includes(m))) s+=8;
-    if(f.prefersRain&&env.precipProbability>40) s+=8;
-    s+=this.gradedRangeScore(env.seaTemp,f.seaTemp[0],f.seaTemp[1],20);
-    s+=this.gradedRangeScore(env.airTemp,f.airTemp[0],f.airTemp[1],12);
-    if(f.wave) s+=this.gradedRangeScore(env.wave,f.wave[0],f.wave[1],7);
-    if(f.windRange) s+=this.gradedRangeScore(env.wind,f.windRange[0],f.windRange[1],10);
-    if((env.wave||0)>1.2||(env.wind||0)>25) s+=2;
+    if(f.seasons.includes(season)||f.seasons.includes("Tüm yıl")) s+=w.season;
+    if(fishTimeMatches(f.time,label)) s+=w.time;
+    if(f.pressure==="low"&&env.pressure<1013) s+=w.pressure;
+    else if(f.pressure==="stable"&&env.pressure>=1012&&env.pressure<=1018) s+=w.pressure;
+    else if(f.pressure==="any") s+=w.pressure*0.5;
+    if(f.moon?.some?.(m=>moon.includes(m))) s+=w.moon;
+    if(f.prefersRain&&env.precipProbability>40) s+=w.rain;
+    s+=this.gradedRangeScore(env.seaTemp,f.seaTemp[0],f.seaTemp[1],w.seaTemp);
+    s+=this.gradedRangeScore(env.airTemp,f.airTemp[0],f.airTemp[1],w.airTemp);
+    if(f.wave) s+=this.gradedRangeScore(env.wave,f.wave[0],f.wave[1],w.wave);
+    if(f.windRange) s+=this.gradedRangeScore(env.wind,f.windRange[0],f.windRange[1],w.wind);
     return Math.max(0,Math.min(100,Math.round(s)));
   }
 };
 
 /* === Fetch Timeout + Abort === */
-async function fetchWithTimeout(url,ms=10000){ const ctrl=new AbortController(); const id=setTimeout(()=>ctrl.abort(),ms); try{ return await fetch(url,{signal:ctrl.signal}); } finally{ clearTimeout(id); } }
+async function fetchWithTimeout(url,ms=10000,signal){
+  const ctrl=new AbortController();
+  const id=setTimeout(()=>ctrl.abort(),ms);
+  if(signal){ signal.addEventListener('abort',()=>ctrl.abort()); }
+  try{ return await fetch(url,{signal:ctrl.signal}); } finally{ clearTimeout(id); }
+}
+
+/* === Basit önbellek yönetimi ===
+   Önceden localStorage'daki "wx:" anahtarları hiç temizlenmiyordu ve zamanla
+   kota sınırına takılabilirdi. Artık her önbellek kaydı bir zaman damgasıyla
+   saklanıyor ve belirli bir yaşın üzerindekiler başlangıçta temizleniyor. */
+const CacheModule={
+  maxAgeMs: 3*24*60*60*1000, // 3 gün
+  cleanup(){
+    try{
+      const now=Date.now();
+      Object.keys(localStorage).forEach(key=>{
+        if(!key.startsWith('wx:')) return;
+        try{
+          const entry=JSON.parse(localStorage.getItem(key));
+          if(!entry || !entry.savedAt || (now-entry.savedAt)>this.maxAgeMs){ localStorage.removeItem(key); }
+        }catch(_){ localStorage.removeItem(key); }
+      });
+    }catch(_){/* localStorage erişilemezse sessiz geç */}
+  }
+};
 
 /* === API (3 saatlik slotlar) === */
 const APIModule={
@@ -523,9 +619,10 @@ const APIModule={
       const wData=await wRes.json(), mData=await mRes.json();
       if(!wData?.hourly?.time?.length) throw new Error("Hava verisi yok");
       if(!mData?.hourly?.time?.length){
-        mData.hourly={ time:wData.hourly.time.slice(), sea_surface_temperature:wData.hourly.time.map(()=>18), wave_height:wData.hourly.time.map(()=>0.3) };
+        const def=seasonalSeaDefaults();
+        mData.hourly={ time:wData.hourly.time.slice(), sea_surface_temperature:wData.hourly.time.map(()=>def.seaTemp), wave_height:wData.hourly.time.map(()=>def.wave) };
       }
-      try{ localStorage.setItem(cacheKey, JSON.stringify({wData,mData})); }catch(_){}
+      try{ localStorage.setItem(cacheKey, JSON.stringify({wData,mData,savedAt:Date.now()})); }catch(_){}
       this.processData(wData,mData,targetDate);
     }catch(e){ console.error(e); showToast("Veri alınamadı. Lütfen daha sonra tekrar deneyin.",'error'); }
     finally{ document.getElementById('loading').style.display='none'; }
@@ -542,8 +639,8 @@ const APIModule={
       pressure:wData.hourly.surface_pressure?.[i]??null,
       cloud:wData.hourly.cloud_cover?.[i]??0,
       precipProbability:wData.hourly.precipitation_probability?.[i]??0,
-      seaTemp:mData.hourly.sea_surface_temperature?.[i]??18,
-      wave:mData.hourly.wave_height?.[i]??0.3
+      seaTemp:mData.hourly.sea_surface_temperature?.[i]??seasonalSeaDefaults().seaTemp,
+      wave:mData.hourly.wave_height?.[i]??seasonalSeaDefaults().wave
     }));
 
     this.slots=buildThreeHourSlots();
@@ -578,7 +675,7 @@ const APIModule={
 
 /* === Harita === */
 const MapModule={
-  map:null, marker:null,
+  map:null, marker:null, searchAbortCtrl:null,
   init(){
     this.map=L.map('map').setView([App.currentLat,App.currentLon],11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution:'&copy; OpenStreetMap contributors' }).addTo(this.map);
@@ -592,19 +689,31 @@ const MapModule={
     if(popupText) this.marker.bindPopup(escapeHTML(popupText)).openPopup();
     this.marker.on('dragend',evt=>{ const p=evt.target.getLatLng(); App.setLocation(p.lat,p.lng,"Seçilen Konum"); });
   },
+  /* Zaten çözülmüş (geocoding'e tekrar gerek olmayan) bir konumu uygula.
+     Datalist önerisinden seçim yapıldığında kullanılır. */
+  applyResolvedLocation(lat,lon,name){
+    this.map.setView([lat,lon],11);
+    this.setMarker({lat,lng:lon}, name);
+    App.setLocation(lat,lon,name);
+  },
   async searchLocation(q){
+    // Önceki aramayı iptal et: art arda hızlı aramalarda yarış durumunu (race condition) önler.
+    if(this.searchAbortCtrl) this.searchAbortCtrl.abort();
+    const ctrl=new AbortController(); this.searchAbortCtrl=ctrl;
+    const btn=document.getElementById('searchButton');
+    if(btn) btn.disabled=true;
     try{
-      const res=await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=tr`,12000);
+      const res=await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=tr`,12000,ctrl.signal);
+      if(ctrl.signal.aborted) return;
       const data=await res.json();
+      if(ctrl.signal.aborted) return;
       if(data.results&&data.results[0]){
         const best=data.results[0]; const {latitude,longitude,name,country_code}=best;
-        this.map.setView([latitude,longitude],11);
-        this.setMarker({lat:latitude,lng:longitude}, name);
         const nm=country_code?`${name} (${country_code})`:name;
-        App.setLocation(latitude,longitude,nm);
+        this.applyResolvedLocation(latitude,longitude,nm);
       }else showToast("Lokasyon bulunamadı!",'error');
-    }catch(err){ showToast("Lokasyon araması başarısız.",'error'); }
-    finally{ sizeLayout(); }
+    }catch(err){ if(!ctrl.signal.aborted) showToast("Lokasyon araması başarısız.",'error'); }
+    finally{ if(this.searchAbortCtrl===ctrl){ this.searchAbortCtrl=null; if(btn) btn.disabled=false; } sizeLayout(); }
   }
 };
 
@@ -612,7 +721,7 @@ const MapModule={
 const UIModule={
   activeIndex:0,
   inRegionFishes(){ return DataModule.fishes.filter(f=>f.regions?.includes(App.currentRegion)); },
-  outRegionFishes(){ return DataModule.fishes.filter(f=>Array.isArray(f.regions)&&!f.regions.includes(App.currentRegion)); },
+  outRegionFishes(){ return DataModule.fishes.filter(f=>Array.isArray(f.regions)&&f.regions.length&&!f.regions.includes(App.currentRegion)); },
   renderCards(){
     const cards=document.getElementById('cards'); cards.innerHTML='';
     const inRegion=this.inRegionFishes();
@@ -626,7 +735,7 @@ const UIModule={
       if(!ranked.length){
         card.setAttribute('aria-label',`${slot.t} için uygun tür yok`);
         card.innerHTML=`<b>${slot.t}</b><div class="small" style="margin-top:8px">Bu bölgede uygun tür bulunamadı.</div>`;
-        card.addEventListener('keydown',(e)=>{ if(e.key==='Enter') card.click(); });
+        card.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); card.click(); } });
         frag.appendChild(card); return;
       }
 
@@ -644,7 +753,7 @@ const UIModule={
         </div>
         <div class="top3 small">${top3}</div>`;
       card.onclick=()=>this.openModal(i);
-      card.addEventListener('keydown',(e)=>{ if(e.key==='Enter') card.click(); });
+      card.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); card.click(); } });
       frag.appendChild(card);
     });
 
@@ -779,10 +888,13 @@ function setupRegionInline(){
   regionEl.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goToCurrent(); } });
 }
 
-/* === Sol geolokasyon ikonu: konum al === */
+/* === Sol geolokasyon ikonu: konum al ===
+   Önceden bu ikonda tabindex yoktu; klavye kullanıcıları hiç odaklanamıyor ve
+   dolayısıyla konum alma özelliğine klavyeyle erişemiyordu. Artık tabindex="0"
+   ve Enter/Space desteğiyle diğer kontrollerle tutarlı hale getirildi. */
 function setupRegionLocateIcon(){
   const icon=document.getElementById('regionLocateIcon'); if(!icon) return;
-  icon.addEventListener('click',()=>{
+  const doLocate=()=>{
     if(!navigator.geolocation){ showToast("Tarayıcınız konum desteği sağlamıyor.",'error'); return; }
     navigator.geolocation.getCurrentPosition(
       pos=>{
@@ -794,7 +906,9 @@ function setupRegionLocateIcon(){
       err=>showToast("Konum alınamadı: "+err.message,'error'),
       { enableHighAccuracy:true, timeout:8000 }
     );
-  });
+  };
+  icon.addEventListener('click',doLocate);
+  icon.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); doLocate(); } });
 }
 
 /* === Mobil scroll ipucu === */
