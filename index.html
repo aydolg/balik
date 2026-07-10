@@ -2,285 +2,389 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8" />
-<title>Balık Avı Paneli – Karadeniz</title>
+<title>Balık Sonarı – Karadeniz Av Verimi</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <!-- 🔐 Content Security Policy (CSP) -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
   script-src 'self' https://unpkg.com 'unsafe-inline';
-  style-src  'self' https://unpkg.com 'unsafe-inline';
+  style-src  'self' https://unpkg.com https://fonts.googleapis.com 'unsafe-inline';
   img-src    'self' data: blob: https://*.tile.openstreetmap.org;
   connect-src 'self' https://api.open-meteo.com https://marine-api.open-meteo.com https://geocoding-api.open-meteo.com;
-  font-src   'self' data:;
+  font-src   'self' data: https://fonts.gstatic.com;
 ">
 
 <!-- ✅ Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
+<!-- Tipografi: Fraunces (tabela/gösterge iğnesi hissi) + IBM Plex Mono (dijital okunum) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
 <style>
-  :root{
-    --bg:#0b1220; --fg:#fff; --panel:#111827; --border:#1e293b; --card:#111827; --chip:#1e293b; --accent:#2563eb;
-    --region-bg:#1f2937; --region-bd:#374151;
-    --toast-bg:#111827; --toast-fg:#fff; --toast-error:#ef4444;
+/* ============================================================
+   TASARIM DİLİ — "Derinlik Göstergesi"
+   Balıkçı teknelerindeki eski amper/derinlik göstergelerinden
+   ve deniz haritalarının kontur çizgilerinden ilham alınmıştır.
+   İmza öge: her zaman diliminde av verimini gösteren dairesel
+   "sonar kadranı" — düz yüzde yazısı yerine gerçek bir derinlik
+   göstergesi gibi okunur.
+   ============================================================ */
+:root{
+  /* --- Derinlik (koyu, varsayılan) --- */
+  --ink:#081319;        /* sayfa zemini: abisal lacivert-siyah */
+  --ink-2:#0e1e26;       /* panel zemini */
+  --ink-3:#132832;       /* kart zemini */
+  --line:#20404c;        /* kontur/ayraç çizgileri */
+  --foam:#eef5f2;        /* birincil metin: köpük beyazı */
+  --foam-dim:#9fb9b4;    /* ikincil metin */
+  --brass:#d9a05a;       /* pirinç enstrüman rengi — birincil vurgu */
+  --brass-deep:#b17b3c;
+  --teal:#3aa08f;        /* iyi verim */
+  --coral:#e2707c;       /* düşük verim / uyarı */
+  --amber:#f0bf6a;       /* çok iyi verim */
+  --grid: rgba(58,160,143,.16);
+  --shadow: rgba(0,0,0,.55);
+  --radius-card: 18px;
+}
+body.light{
+  /* --- Gün Işığı (açık, eskitilmiş deniz haritası kağıdı) --- */
+  --ink:#f2ecda;
+  --ink-2:#fffdf6;
+  --ink-3:#faf3e1;
+  --line:#d8c9a0;
+  --foam:#20241f;
+  --foam-dim:#5f6a58;
+  --brass:#a8672c;
+  --brass-deep:#8a5322;
+  --teal:#2f7d6d;
+  --coral:#b7404c;
+  --amber:#c17f2e;
+  --grid: rgba(47,125,109,.14);
+  --shadow: rgba(90,70,40,.2);
+}
 
-    /* İkon ince ayarları */
-    --locate-size: 26px;
-    --locate-bg: rgba(255,255,255,0.12);
-    --locate-ring: rgba(37,99,235,0.6);
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0; background:var(--ink); color:var(--foam); min-height:100dvh;
+  font-family:'IBM Plex Mono', 'Courier New', monospace; /* fallback; asıl gövde fontu aşağıda override edilir */
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  transition:background .35s ease, color .35s ease;
+  position:relative;
+  background-image:
+    radial-gradient(ellipse at top, rgba(58,160,143,.06), transparent 55%),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.012) 0 1px, transparent 1px 26px);
+}
+body.light{
+  background-image:
+    radial-gradient(ellipse at top, rgba(168,103,44,.08), transparent 55%),
+    repeating-linear-gradient(180deg, rgba(0,0,0,.02) 0 1px, transparent 1px 26px);
+}
+::selection{ background:var(--brass); color:var(--ink); }
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-thumb{ background:var(--line); border-radius:8px; }
+::-webkit-scrollbar-track{ background:transparent; }
 
-    --toolbar-w: 0px; /* sağ üstte alan ayırmaya gerek yok; satır ortalanıyor */
-  }
-  body.light{
-    --bg:#f8fafc; --fg:#0f172a; --panel:#fff; --border:#e2e8f0; --card:#fff; --chip:#e0e7ff; --accent:#2563eb;
-    --region-bg:#f1f5f9; --region-bd:#cbd5e1; --toast-bg:#fff; --toast-fg:#0f172a; --toast-error:#dc2626;
-    --locate-bg: rgba(15,23,42,0.08); --locate-ring: rgba(37,99,235,0.45);
-  }
-  body.ocean{
-    --bg:#06151f; --fg:#e6f7ff; --panel:#0a1f2b; --border:#0f2f42; --card:#0c2433; --chip:#113a50; --accent:#00a0d2;
-    --region-bg:#0e2b3d; --region-bd:#13506b;
-  }
-  body.forest{
-    --bg:#0c1610; --fg:#eaffea; --panel:#132218; --border:#1a2f21; --card:#1a2c22; --chip:#224033; --accent:#22c55e;
-    --region-bg:#1b3528; --region-bd:#2a5a44;
-  }
+.mono{ font-family:'IBM Plex Mono',ui-monospace,monospace; }
+.display{ font-family:'Fraunces',Georgia,serif; }
 
-  html, body { height:100%; }
-  body{
-    margin:0; font-family:system-ui,-apple-system,sans-serif;
-    background:var(--bg); color:var(--fg); min-height:100dvh;
-    transition:background .3s,color .3s; position:relative;
-  }
+/* === Başlık: pirinç tabela === */
+header{
+  padding:22px 16px 18px; text-align:center; position:relative;
+  border-bottom:1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(217,160,90,.05), transparent 70%);
+}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--teal); margin:0 0 6px;
+}
+h1.brand{
+  margin:0; font-family:'Fraunces',Georgia,serif; font-weight:700; font-size:clamp(24px,5vw,34px);
+  letter-spacing:.01em; color:var(--foam);
+  display:flex; align-items:center; justify-content:center; gap:10px;
+}
+h1.brand .anchor-mark{ color:var(--brass); font-size:.85em; }
+.tagline{ margin:4px 0 16px; font-size:13px; color:var(--foam-dim); }
 
-  header{
-    padding:16px; border-bottom:1px solid var(--border);
-    display:flex; flex-direction:column; gap:10px; align-items:center; justify-content:center; text-align:center;
-  }
-  h2{ margin:0; font-size:22px; text-align:center; }
+.region-row{ display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; }
 
-  /* Başlık altı satır: ortalı yerleşim */
-  .region-row{
-    display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap;
-  }
+.locate-icon{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:34px; height:34px; border-radius:50%;
+  background:var(--ink-3); border:1px solid var(--line);
+  cursor:pointer; transition:transform .2s, box-shadow .2s, border-color .2s; position:relative; font-size:14px;
+}
+.locate-icon:hover{ border-color:var(--brass); transform:scale(1.06); }
+.locate-icon:active{ transform:scale(.94); }
+.locate-icon:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; }
+.locate-icon::after{
+  content:""; position:absolute; inset:-5px; border-radius:50%;
+  box-shadow:0 0 0 0 rgba(217,160,90,.55); animation:pulse 2.4s infinite;
+}
+@keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(217,160,90,.45);} 70%{box-shadow:0 0 0 10px rgba(217,160,90,0);} 100%{box-shadow:0 0 0 0 rgba(217,160,90,0);} }
+@media (prefers-reduced-motion:reduce){ .locate-icon::after{ animation:none; } }
 
-  /* Geolokasyon ikonu (sol dış) */
-  .locate-icon{
-    display:inline-flex; align-items:center; justify-content:center;
-    width:var(--locate-size); height:var(--locate-size); border-radius:50%;
-    background:var(--locate-bg); border:1px solid var(--border);
-    cursor:pointer; transition:transform .2s, box-shadow .2s, background .2s; position:relative;
-  }
-  .locate-icon:hover{ transform:scale(1.08); box-shadow:0 0 0 3px rgba(37,99,235,.35); background:rgba(255,255,255,0.18); }
-  .locate-icon:active{ transform:scale(0.95); }
-  .locate-icon:focus{ outline:none; box-shadow:0 0 0 3px rgba(37,99,235,.5); }
-  .locate-icon::after{
-    content:""; position:absolute; inset:-6px; border-radius:50%;
-    box-shadow:0 0 0 0 var(--locate-ring); animation:pulse 2.2s infinite;
-  }
-  @keyframes pulse{
-    0%{ box-shadow:0 0 0 0 var(--locate-ring); }
-    70%{ box-shadow:0 0 0 12px rgba(37,99,235,0); }
-    100%{ box-shadow:0 0 0 0 rgba(37,99,235,0); }
-  }
+.region-inline{
+  display:inline-flex; align-items:center; gap:8px;
+  background:var(--ink-3); border:1px solid var(--brass-deep); color:var(--foam);
+  border-radius:999px; padding:8px 16px; font-size:13px; font-weight:600; letter-spacing:.02em;
+  box-shadow:0 4px 14px var(--shadow);
+  cursor:pointer; transition:transform .15s ease, border-color .15s ease;
+}
+.region-inline:hover{ transform:translateY(-1px); border-color:var(--brass); }
+.region-inline:active{ transform:scale(.98); }
+.region-inline:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; }
+.region-chip{ font-weight:700; color:var(--brass); }
+.city-chip{ opacity:.9; }
+.region-warn{ font-size:12px; }
 
-  /* Bölge rozeti (merkez) */
-  .region-inline{
-    display:inline-flex; align-items:center; gap:10px;
-    background:var(--region-bg); border:2px solid var(--region-bd); color:var(--fg);
-    border-radius:999px; padding:8px 14px; font-size:14px; font-weight:600;
-    box-shadow:0 4px 12px rgba(0,0,0,.25);
-    cursor:pointer; transition: transform .15s ease, box-shadow .15s ease;
-  }
-  .region-inline:hover{ transform: translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.35); }
-  .region-inline:active{ transform: scale(0.98); }
-  .region-inline:focus{ outline:none; box-shadow:0 0 0 3px rgba(37,99,235,.35); }
+.icon-btn{
+  background:var(--ink-3); color:var(--foam); border:1px solid var(--line);
+  width:34px; height:34px; border-radius:10px; cursor:pointer; font-size:15px;
+  display:inline-flex; align-items:center; justify-content:center; transition:border-color .2s;
+}
+.icon-btn:hover{ border-color:var(--brass); }
+.icon-btn:active{ transform:scale(.94); }
 
-  .region-text{ display:inline-flex; align-items:center; gap:6px; }
-  .region-chip{ font-weight:700; }
-  .city-chip{ opacity:.95; }
-  .region-warn{ font-size:11px; opacity:.85; }
+.menu{
+  position:absolute; background:var(--ink-2); color:var(--foam);
+  border:1px solid var(--line); border-radius:12px; padding:6px; min-width:170px; box-shadow:0 16px 30px var(--shadow);
+  display:none; z-index:20;
+}
+.menu.open{ display:block; }
+.menu h4{ margin:6px 8px 6px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--foam-dim); }
+.menu .opt{ display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; cursor:pointer; font-size:13px; }
+.menu .opt:hover{ background:rgba(217,160,90,.1); }
+.theme-menu-anchor{ position:relative; }
 
-  /* ⚙️ Tema ikonu (sağ dış, yazısız) */
-  .icon-btn{
-    background:var(--panel); color:var(--fg); border:1px solid var(--border);
-    padding:6px 8px; border-radius:10px; cursor:pointer; font-size:16px; line-height:1;
-    display:inline-flex; align-items:center; justify-content:center; gap:0;
-    min-width:auto;
-  }
-  .icon-btn:active{ transform: scale(0.95); }
+/* === Kontrol konsolu === */
+.location-panel{
+  padding:16px; background:var(--ink-2); display:flex; flex-direction:column; gap:10px;
+  border-bottom:1px solid var(--line);
+}
+.console-label{
+  font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--teal); display:block; margin-bottom:4px;
+}
+.search-row{ display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; justify-content:center; }
+.field{ flex:1 1 200px; min-width:170px; }
+.field.search-field{ flex:2 1 300px; min-width:240px; }
+.field.btn-field{ flex:0 0 auto; }
 
-  /* Tema menüsü (kompakt) */
-  .menu{
-    position:absolute; background:var(--panel); color:var(--fg);
-    border:1px solid var(--border); border-radius:12px; padding:8px; min-width:180px; box-shadow:0 12px 24px rgba(0,0,0,.35);
-    display:none; z-index:20;
-  }
-  .menu.open{ display:block; }
-  .menu h4{ margin:6px 8px 8px; font-size:13px; opacity:.85; }
-  .menu .opt{ display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; cursor:pointer; }
-  .menu .opt:hover{ background:rgba(255,255,255,0.08); }
+#locationInput, #recentLocations, #dateSelect{
+  width:100%; background:var(--ink-3); color:var(--foam); caret-color:var(--brass);
+  border:1px solid var(--line); border-radius:10px; padding:11px 12px; font-size:14px;
+  font-family:inherit; transition:border-color .2s;
+}
+#locationInput:focus, #recentLocations:focus, #dateSelect:focus{ outline:none; border-color:var(--brass); }
+#searchButton{
+  background:var(--brass); color:var(--ink); border:none; border-radius:10px; padding:11px 20px;
+  font-size:14px; font-weight:700; letter-spacing:.02em; cursor:pointer; transition:all .2s; white-space:nowrap;
+}
+#searchButton:hover{ background:var(--amber); }
+#searchButton:active{ transform:scale(.97); }
+#searchButton:disabled{ opacity:.55; cursor:progress; }
 
-  /* Menü konumu: rozet satırına göre hizalanır */
-  .theme-menu-anchor{
-    position:relative; /* anchor elem. menü top/right referansı için */
-  }
+/* === Harita === */
+#map{
+  height:min(28dvh, 280px); margin:16px; border-radius:16px; overflow:hidden;
+  box-shadow:0 10px 26px var(--shadow); position:relative; z-index:1; border:1px solid var(--line);
+  filter:saturate(.85);
+}
+@media (min-width:768px){ #map{ height:min(32dvh, 300px) } }
 
-  /* Arama paneli */
-  .location-panel{ padding:16px; background:var(--panel); display:flex; flex-direction:column; gap:12px }
-  .search-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center; }
-  .search-row > *{ flex:1 1 220px; min-width:180px; }
-  .search-row .search-input{ flex:2 1 320px; min-width:260px; }
-  .search-row .btn-search{ flex:0 0 120px; min-width:120px; }
-  #locationInput{
-    background:rgba(255,255,255,0.12); color:var(--fg); caret-color:var(--fg);
-    border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:16px
-  }
-  #searchButton{
-    background:var(--accent); color:#fff; border:none; border-radius:12px; padding:12px 14px; font-size:16px; font-weight:700; cursor:pointer; transition:all .2s;
-  }
-  #searchButton:active{ transform:scale(0.98) }
-  #searchButton:disabled{ opacity:.6; cursor:progress; }
+#loading{
+  display:none; text-align:center; font-size:14px; padding:18px; font-weight:600; color:var(--teal);
+  font-family:'IBM Plex Mono',monospace; letter-spacing:.05em;
+}
+#loading::before{ content:"◐ "; animation:spin 1s steps(4) infinite; display:inline-block; }
+@keyframes spin{ 0%{content:"◐ ";} 25%{content:"◓ ";} 50%{content:"◑ ";} 75%{content:"◒ ";} }
 
-  /* Harita */
-  #map{
-    height:min(30dvh, 300px); margin:16px; border-radius:16px; overflow:hidden;
-    box-shadow:0 8px 24px rgba(0,0,0,.4); position:relative; z-index:1
-  }
-  @media (min-width:768px){ #map{ height:min(35dvh, 300px) } }
+/* === Kartlar === */
+.cards{
+  padding:0 16px 16px; display:grid; gap:16px;
+  grid-template-columns: repeat(1, minmax(260px, 1fr));
+  overflow:auto; -webkit-overflow-scrolling:touch; position:relative;
+}
+@media (min-width:768px){ .cards{ padding:0 24px 24px; grid-template-columns: repeat(2, minmax(280px, 1fr)); gap:18px; } }
+@media (min-width:992px){ .cards{ padding:0 32px 32px; grid-template-columns: repeat(3, minmax(280px, 1fr)); gap:18px; } }
+@media (min-width:1280px){ .cards{ padding:0 40px 40px; grid-template-columns: repeat(4, minmax(260px, 1fr)); gap:20px; } }
 
-  #loading{ display:none; color:#16a34a; text-align:center; font-size:18px; padding:20px; font-weight:bold }
+.card{
+  background:var(--ink-3); border-radius:var(--radius-card); padding:16px;
+  box-shadow:0 8px 22px var(--shadow); transition:transform .2s ease, border-color .2s ease; cursor:pointer;
+  border:1px solid var(--line); outline:none; position:relative; display:flex; flex-direction:column; align-items:center; text-align:center;
+}
+.card:hover{ transform:translateY(-3px); border-color:var(--brass-deep); }
+.card:active{ transform:scale(.97); }
+.card:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; }
+.card--now{ border-color:var(--brass); }
+.card--now .slot-label::after{ content:"ŞİMDİ"; margin-left:8px; font-size:9px; letter-spacing:.12em; color:var(--ink); background:var(--brass); padding:2px 6px; border-radius:999px; vertical-align:middle; }
 
-  /* Kartlar */
-  .cards{
-    padding:0 16px 16px; display:grid; gap:16px;
-    grid-template-columns: repeat(1, minmax(280px, 1fr));
-    overflow:auto; -webkit-overflow-scrolling:touch;
-    position:relative;
-  }
-  @media (min-width:768px){ .cards{ padding:0 24px 24px; grid-template-columns: repeat(2, minmax(300px, 1fr)); gap:18px; } }
-  @media (min-width:992px){ .cards{ padding:0 32px 32px; grid-template-columns: repeat(3, minmax(300px, 1fr)); gap:20px; } }
-  @media (min-width:1280px){ .cards{ padding:0 40px 40px; grid-template-columns: repeat(4, minmax(280px, 1fr)); gap:22px; } }
+.card-head{ width:100%; display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:6px; }
+.slot-label{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:13px; color:var(--foam); }
+.slot-daypart{ font-size:10px; letter-spacing:.1em; color:var(--foam-dim); text-transform:uppercase; }
 
-  .card{
-    background:var(--card); border-radius:16px; padding:16px;
-    box-shadow:0 6px 20px rgba(0,0,0,.35); transition:all .2s ease; cursor:pointer; border:1px solid var(--border);
-    outline:none;
-  }
-  .card:hover{ transform:translateY(-4px) scale(1.02); box-shadow:0 12px 28px rgba(0,0,0,.45) }
-  .card:active{ transform:scale(0.96) }
-  .card:focus{ box-shadow:0 0 0 3px var(--accent) }
+.dial-wrap{ position:relative; width:96px; height:96px; margin:6px 0 10px; }
+.dial-wrap::before{
+  content:""; position:absolute; inset:4px; border-radius:50%;
+  background:repeating-conic-gradient(from 0deg, var(--grid) 0deg 1.5deg, transparent 1.5deg 30deg);
+  opacity:.7;
+}
+.card--now .dial-wrap::after{
+  content:""; position:absolute; inset:4px; border-radius:50%;
+  background:conic-gradient(from 0deg, transparent 0deg 305deg, var(--brass) 335deg, transparent 360deg);
+  animation:sweep 5s linear infinite; mix-blend-mode:screen; opacity:.8;
+}
+@keyframes sweep{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce){ .card--now .dial-wrap::after{ animation:none; } }
+.dial{ position:relative; z-index:1; }
+.dial-track{ stroke:var(--line); }
+.dial-score{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:22px; }
+.dial-unit{ font-family:'IBM Plex Mono',monospace; font-size:8px; letter-spacing:.16em; fill:var(--foam-dim); }
 
-  .top3{ margin-top:8px; opacity:.95 }
-  .top3 .chip{
-    display:inline-block; background:var(--chip); border-radius:999px;
-    padding:4px 8px; margin:2px 4px 0 0; font-size:12px; border:1px solid var(--border)
-  }
+.fish-name{ font-weight:700; font-size:15px; margin-bottom:6px; }
+.fish-name .badge{ margin-right:4px; }
 
-  /* Modal */
-  .modal{ position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; z-index:2000; align-items:flex-end; justify-content:center }
-  .sheet{ width:100%; max-height:90vh; background:var(--panel); border-radius:24px 24px 0 0; padding:20px; overflow-y:auto; box-shadow:0 -20px 40px rgba(0,0,0,.6); position:relative; z-index:2001; border:1px solid var(--border) }
-  .modal-top-bar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; position:relative }
-  .modal-top-bar h3{ margin:0; flex:1; text-align:center; font-size:18px }
-  .modal-actions{ display:flex; gap:12px; align-items:center }
-  .close,.share-button{ width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; transition:all .2s }
-  .close{ background:rgba(255,255,255,0.1); border:1px solid var(--border) }
-  .close:active{ transform:scale(0.9); background:rgba(255,255,255,0.2) }
-  .share-button{ background:var(--accent); color:#fff; border:1px solid var(--border) }
-  .share-button:active{ transform:scale(0.9) }
-  .timeline{ display:flex; gap:10px; margin:16px 0; overflow-x:auto; padding-bottom:8px }
-  .slot{ padding:10px 12px; border-radius:12px; background:var(--chip); cursor:pointer; font-size:13px; min-width:140px; text-align:center; transition:all .2s; border:1px solid var(--border); color:var(--fg) }
-  .slot:hover{ transform:scale(1.05) }
-  .slot:active{ transform:scale(0.95) }
-  .slot.active{ background:var(--accent); color:#fff; border-color:transparent }
+.env-mini{ font-size:12px; color:var(--foam-dim); margin-bottom:8px; line-height:1.5; }
+.env-mini b{ color:var(--foam); font-weight:600; }
 
-  /* 🧱 Env grid: mobil 2 sütun, tablet/desktop 3 sütun */
-  .env-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin:16px 0 }
-  @media (min-width:600px){ .env-grid{ grid-template-columns:repeat(3,1fr); gap:14px } }
-  @media (min-width:1024px){ .env-grid{ grid-template-columns:repeat(3,1fr); gap:16px } }
-  .env-box{ background:var(--chip); border:1px solid var(--border); border-radius:12px; padding:12px; text-align:center; font-size:14px; color:var(--fg) }
+.top3{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:auto; padding-top:8px; }
+.top3 .chip{
+  display:inline-flex; align-items:center; gap:3px; background:var(--ink-2); border-radius:999px;
+  padding:4px 9px; font-size:11px; border:1px solid var(--line); font-family:'IBM Plex Mono',monospace;
+}
 
-  .fish{ background:var(--chip); border:1px solid var(--border); border-radius:16px; padding:16px; margin:12px 0; box-shadow:0 4px 12px rgba(0,0,0,.3); transition:all .2s; color:var(--fg) }
-  .fish:active{ transform:scale(0.98) }
-  .fish-head{ display:flex; justify-content:space-between; align-items:center; font-size:18px; font-weight:bold; padding-bottom:10px }
-  .detail{ margin-top:12px; padding-top:12px; border-top:1px solid var(--border) }
-  .av-comment{ font-size:15px; font-weight:bold; margin:12px 0; padding:12px; border-radius:12px; text-align:center; background:rgba(0,0,0,0.2); color:var(--fg) }
-  .bar{ width:100%; height:10px; background:var(--border); border-radius:8px; overflow:hidden; margin:8px 0 }
-  .bar > div{ height:100%; background:#16a34a; transition:width .3s ease }
-  .takim-yem .small{ line-height:1.6 }
-  .nadir{ display:inline-block; margin-top:6px; font-size:12px; background:transparent; color:var(--fg); border:1px dashed var(--border); border-radius:8px; padding:4px 8px }
+.card-empty{ color:var(--foam-dim); font-size:13px; padding:20px 0; }
 
-  .toast{
-    position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
-    background:var(--toast-bg); color:var(--toast-fg);
-    padding:10px 14px; border-radius:10px; z-index:3000; box-shadow:0 10px 20px rgba(0,0,0,.35);
-    border:1px solid var(--border); min-width:240px; text-align:center;
-  }
-  .toast.error{ background:var(--toast-error); color:#fff; }
+/* === Modal === */
+.modal{ position:fixed; inset:0; background:rgba(2,8,11,.8); display:none; z-index:2000; align-items:flex-end; justify-content:center; backdrop-filter:blur(2px); }
+.sheet{
+  width:100%; max-height:90vh; background:var(--ink-2); border-radius:22px 22px 0 0; padding:20px 18px 28px;
+  overflow-y:auto; box-shadow:0 -24px 48px var(--shadow); position:relative; z-index:2001; border:1px solid var(--line); border-bottom:none;
+}
+.modal-top-bar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; position:relative; gap:10px; }
+.modal-top-bar h3{ margin:0; flex:1; text-align:center; font-size:15px; font-family:'IBM Plex Mono',monospace; color:var(--foam-dim); letter-spacing:.02em; }
+.modal-actions{ display:flex; gap:10px; align-items:center; }
+.close,.share-button{ width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; transition:all .2s; flex:0 0 auto; }
+.close{ background:var(--ink-3); border:1px solid var(--line); color:var(--foam); }
+.close:hover{ border-color:var(--coral); }
+.close:active{ transform:scale(.9); }
+.share-button{ background:var(--brass); color:var(--ink); border:none; }
+.share-button:hover{ background:var(--amber); }
+.share-button:active{ transform:scale(.9); }
 
-  /* 📱 Mobil scroll ipucu (kartların üst kısmında) */
-  .scroll-hint{
-    position:absolute; top:-8px; left:0; right:0; height:44px;
-    pointer-events:none; display:none;
-  }
-  .scroll-hint .fade{ position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,0)); border-radius:12px; }
-  .scroll-hint .msg{
-    position:absolute; top:4px; left:50%; transform:translateX(-50%);
-    background:rgba(17,24,39,.8); color:#fff; font-size:12px; padding:6px 10px;
-    border-radius:999px; border:1px solid rgba(255,255,255,.15);
-    display:flex; align-items:center; gap:6px;
-  }
-  .scroll-hint .chev{ animation:bounce 1.2s infinite; }
-  @keyframes bounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(4px); } }
-  @media (max-width:767px){ .scroll-hint{ display:block; } }
+.timeline{ display:flex; gap:8px; margin:14px 0 18px; overflow-x:auto; padding-bottom:6px; }
+.slot{
+  padding:9px 13px; border-radius:10px; background:var(--ink-3); cursor:pointer; font-size:12px; min-width:118px;
+  text-align:center; transition:all .2s; border:1px solid var(--line); color:var(--foam); font-family:'IBM Plex Mono',monospace;
+  flex:0 0 auto;
+}
+.slot:hover{ border-color:var(--brass-deep); }
+.slot.active{ background:var(--brass); color:var(--ink); border-color:transparent; font-weight:700; }
+
+.env-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:14px 0 20px; }
+@media (min-width:600px){ .env-grid{ grid-template-columns:repeat(3,1fr); gap:12px; } }
+.env-box{
+  background:var(--ink-3); border:1px solid var(--line); border-radius:12px; padding:12px 10px; text-align:center;
+  font-size:13px; color:var(--foam);
+}
+.env-box .env-label{ display:block; font-size:10px; color:var(--foam-dim); letter-spacing:.08em; text-transform:uppercase; margin-bottom:3px; font-family:'IBM Plex Mono',monospace; }
+.env-box .env-val{ font-family:'IBM Plex Mono',monospace; font-weight:600; }
+
+.fish{ background:var(--ink-3); border:1px solid var(--line); border-radius:16px; padding:15px; margin:10px 0; transition:border-color .2s; }
+.fish:hover{ border-color:var(--brass-deep); }
+.fish-head{ display:flex; justify-content:space-between; align-items:center; font-size:16px; font-weight:700; padding-bottom:2px; cursor:pointer; }
+.fish-head .fh-score{ font-family:'IBM Plex Mono',monospace; }
+.detail{ margin-top:0; max-height:0; overflow:hidden; transition:max-height .25s ease; }
+.detail.open{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line); max-height:600px; }
+.av-comment{ font-size:14px; font-weight:600; margin:10px 0; padding:10px; border-radius:10px; text-align:center; background:rgba(0,0,0,.18); }
+body.light .av-comment{ background:rgba(0,0,0,.05); }
+.bar{ width:100%; height:8px; background:var(--line); border-radius:6px; overflow:hidden; margin:8px 0;
+  background-image:repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 1px, transparent 1px 10%); }
+.bar > div{ height:100%; border-radius:6px; transition:width .3s ease; }
+.takim-yem{ display:flex; gap:8px; align-items:flex-start; font-size:13px; margin-top:6px; }
+.takim-yem .takim-icon{ flex:0 0 auto; }
+.nadir{ display:inline-block; margin-top:6px; font-size:11px; color:var(--foam-dim); border:1px dashed var(--line); border-radius:8px; padding:3px 8px; font-family:'IBM Plex Mono',monospace; }
+.moon-line{ font-size:12px; color:var(--foam-dim); margin-top:8px; }
+
+.toast{
+  position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+  background:var(--ink-2); color:var(--foam); padding:10px 16px; border-radius:10px; z-index:3000;
+  box-shadow:0 12px 24px var(--shadow); border:1px solid var(--line); min-width:240px; text-align:center; font-size:13px;
+}
+.toast.error{ background:var(--coral); color:#2a0d10; border-color:transparent; font-weight:600; }
+
+.scroll-hint{ position:absolute; top:-8px; left:0; right:0; height:40px; pointer-events:none; display:none; }
+.scroll-hint .fade{ position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,.3), rgba(0,0,0,0)); border-radius:12px; }
+.scroll-hint .msg{
+  position:absolute; top:4px; left:50%; transform:translateX(-50%); background:var(--ink-2); color:var(--foam);
+  font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--line); display:flex; align-items:center; gap:6px;
+  font-family:'IBM Plex Mono',monospace;
+}
+.scroll-hint .chev{ animation:bounce 1.2s infinite; }
+@keyframes bounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(4px); } }
+@media (max-width:767px){ .scroll-hint{ display:block; } }
+@media (prefers-reduced-motion:reduce){ .scroll-hint .chev{ animation:none; } }
 </style>
 </head>
 <body class="">
 <header>
-  <h2>🎣 Balık Avı Paneli</h2>
+  <p class="eyebrow">Kıyı Balıkçılık İstasyonu</p>
+  <h1 class="brand"><span class="anchor-mark">⚓</span> Balık Sonarı</h1>
+  <p class="tagline">Konum, tarih ve saate göre Karadeniz kıyısında av verimi tahmini</p>
 
-  <!-- Başlık altı satır: SOL 📍 | ORTA ROZET | SAĞ ⚙️ -->
   <div class="region-row theme-menu-anchor" id="regionRow">
-    <!-- Sol: Geolokasyon ikonu -->
     <span id="regionLocateIcon" class="locate-icon" role="button" tabindex="0" aria-label="Konumumu kullan" title="Konumumu kullan">📍</span>
 
-    <!-- Orta: Bölge rozeti -->
     <div class="region-inline" id="regionInline" role="button" tabindex="0" aria-label="Mevcut konuma git">
       <span class="region-text">
         <span id="regionName" class="region-chip">Batı Karadeniz</span>
-        <span>–</span>
+        <span>·</span>
         <span id="cityName" class="city-chip">Amasra</span>
         <span id="regionWarn" class="region-warn" style="display:none" title="Bu konum Karadeniz kıyı şeridi dışında görünüyor; tahminler güvenilir olmayabilir">⚠️</span>
       </span>
     </div>
 
-    <!-- Sağ: Tema ikonu (yazısız) -->
-    <button id="themeButton" class="icon-btn" aria-haspopup="true" aria-expanded="false" aria-controls="themeMenu" title="Tema">⚙️</button>
-    <!-- Tema menüsü (sağ dışa hizalanır) -->
-    <div id="themeMenu" class="menu" role="menu" aria-label="Tema seçenekleri" style="top:42px; right:-8px;">
-      <h4>Tema</h4>
-      <label class="opt" role="menuitemradio" aria-checked="false"><input type="radio" name="theme" value=""> Koyu</label>
-      <label class="opt" role="menuitemradio" aria-checked="false"><input type="radio" name="theme" value="light"> Açık</label>
-      <label class="opt" role="menuitemradio" aria-checked="false"><input type="radio" name="theme" value="ocean"> Okyanus</label>
-      <label class="opt" role="menuitemradio" aria-checked="false"><input type="radio" name="theme" value="forest"> Orman</label>
+    <button id="themeButton" class="icon-btn" aria-haspopup="true" aria-expanded="false" aria-controls="themeMenu" title="Görünüm">⚙️</button>
+    <div id="themeMenu" class="menu" role="menu" aria-label="Görünüm seçenekleri" style="top:42px; right:-8px;">
+      <h4>Görünüm</h4>
+      <label class="opt" role="menuitemradio" aria-checked="false"><input type="radio" name="theme" value=""> Derinlik (koyu)</label>
+      <label class="opt" role="menuitemradio" aria-checked="false"><input type="radio" name="theme" value="light"> Gün Işığı</label>
     </div>
   </div>
 </header>
 
 <div class="location-panel">
   <div class="search-row">
-    <input class="search-input" type="text" id="locationInput" placeholder="Şehir/İlçe girin (ör: Amasra)" list="locationSuggestions" aria-label="Lokasyon arama">
-    <datalist id="locationSuggestions"></datalist>
-    <select id="recentLocations" aria-label="Son Lokasyonlar"><option value="">Son Lokasyonlar</option></select>
-    <select id="dateSelect" aria-label="Tarih seçimi"></select>
-    <button id="searchButton" class="btn-search" aria-label="Ara">Ara</button>
+    <div class="field search-field">
+      <span class="console-label">Konum</span>
+      <input type="text" id="locationInput" placeholder="Şehir/İlçe girin (ör: Amasra)" list="locationSuggestions" aria-label="Lokasyon arama">
+      <datalist id="locationSuggestions"></datalist>
+    </div>
+    <div class="field">
+      <span class="console-label">Son Aramalar</span>
+      <select id="recentLocations" aria-label="Son Lokasyonlar"><option value="">Son Lokasyonlar</option></select>
+    </div>
+    <div class="field">
+      <span class="console-label">Tarih</span>
+      <select id="dateSelect" aria-label="Tarih seçimi"></select>
+    </div>
+    <div class="field btn-field">
+      <span class="console-label">&nbsp;</span>
+      <button id="searchButton" aria-label="Ara">Ara →</button>
+    </div>
   </div>
 </div>
 
 <div id="map"></div>
-<div id="loading" role="status" aria-live="polite">Veriler yükleniyor, lütfen bekleyin...</div>
+<div id="loading" role="status" aria-live="polite">Veriler yükleniyor</div>
 
 <div class="cards" id="cards">
-  <!-- 📱 Mobil scroll ipucu -->
   <div class="scroll-hint" id="scrollHint">
     <div class="fade"></div>
     <div class="msg">Aşağı kaydırın <span class="chev">⬇️</span></div>
@@ -292,7 +396,7 @@
     <div class="modal-top-bar">
       <div class="modal-actions"><button class="share-button" id="shareButton" aria-label="Paneli paylaş">📤</button></div>
       <h3 id="slotTitle"></h3>
-      <div class="modal-actions"><div class="close" id="modalClose" aria-label="Kapat" role="button">✖</div></div>
+      <div class="modal-actions"><div class="close" id="modalClose" aria-label="Kapat" role="button" tabindex="0">✖</div></div>
     </div>
     <div class="timeline" id="timeline"></div>
     <div class="env-grid" id="envGrid"></div>
@@ -311,7 +415,7 @@ function fishIcons(score){ return '🐟'.repeat(fishIconCount(score)); }
 function escapeHTML(s){ if(s==null) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
 function showToast(msg,type='info'){ const el=document.createElement('div'); el.className='toast'+(type==='error'?' error':''); el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),3000); }
 const debounce=(fn,wait=250)=>{ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args),wait); }; };
-function buildThreeHourSlots(){ const make=(s)=>({ t:`${pad2(s)}:00 - ${pad2(s+3)}:00`, hours:[s,s+1,s+2], timeLabel:"GÜNDÜZ" }); return [make(0),make(3),make(6),make(9),make(12),make(15),make(18),make(21)]; }
+function buildThreeHourSlots(){ const make=(s)=>({ t:`${pad2(s)}:00–${pad2(s+3)}:00`, hours:[s,s+1,s+2], timeLabel:"GÜNDÜZ" }); return [make(0),make(3),make(6),make(9),make(12),make(15),make(18),make(21)]; }
 function labelBySunClock(hour,sunriseStr,sunsetStr){ const toMin=s=>{ const [H,M]=String(s||'06:00').split(':').map(Number); return H*60+M; }; const hMin=hour*60; const sr=sunriseStr?toMin(sunriseStr):360; const ss=sunsetStr?toMin(sunsetStr):1080; const tw=60; if(hMin<sr-tw||hMin>ss+tw) return "GECE"; if(Math.abs(hMin-sr)<=tw||Math.abs(hMin-ss)<=tw) return "ALACAKARANLIK"; return "GÜNDÜZ"; }
 
 /* Tek balık türü zaman uygunluğunu kontrol eder.
@@ -330,18 +434,34 @@ function seasonalSeaDefaults(){
   return table[season]||{seaTemp:16,wave:0.5};
 }
 
+/* Dairesel "sonar kadranı" — av verimini düz yüzde yerine gerçek bir
+   derinlik/gösterge ibresi gibi çizer. Renk teması CSS değişkenleri
+   üzerinden geldiği için tema değişince otomatik uyum sağlar. */
+function renderDial(score){
+  const size=96, stroke=8, r=(size/2)-stroke-2, c=2*Math.PI*r;
+  const offset=(c-(Math.max(0,Math.min(100,score))/100)*c).toFixed(2);
+  const color=ScoringModule.color(score);
+  return `<svg class="dial" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="Av verimi yüzde ${score}">
+    <circle class="dial-track" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="${stroke}" fill="none"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="${stroke}" fill="none"
+      stroke="${color}" stroke-linecap="round" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${offset}"
+      transform="rotate(-90 ${size/2} ${size/2})"/>
+    <text x="50%" y="47%" text-anchor="middle" dominant-baseline="middle" class="dial-score" fill="${color}">${score}</text>
+    <text x="50%" y="65%" text-anchor="middle" dominant-baseline="middle" class="dial-unit">AV VERİMİ %</text>
+  </svg>`;
+}
+
 /* === Tema menüsü (⚙️) === */
 const themeButton=document.getElementById('themeButton');
 const themeMenu=document.getElementById('themeMenu');
 function applyThemeClass(cls){
-  document.body.classList.remove('light','ocean','forest');
+  document.body.classList.remove('light');
   if(cls) document.body.classList.add(cls);
   localStorage.setItem('fishingThemeClass', cls || '');
 }
 (function initTheme(){
   const saved=localStorage.getItem('fishingThemeClass')||'';
   applyThemeClass(saved);
-  // radyo sync
   [...themeMenu.querySelectorAll('input[name="theme"]')].forEach(r=>{
     r.checked=(r.value===saved);
     r.parentElement.setAttribute('aria-checked', r.checked?'true':'false');
@@ -369,9 +489,7 @@ themeMenu.addEventListener('change',(e)=>{
 });
 
 /* === Region ===
-   Karadeniz kıyı şeridi kaba enlem/boylam sınırları içinde mi kontrol edilir.
-   Daha önce sadece boylam bakılıyordu; İç Anadolu ya da yurt dışından bir konum
-   sorgulansa bile sessizce bir bölgeye atanıp yanıltıcı tahminler üretiliyordu. */
+   Karadeniz kıyı şeridi kaba enlem/boylam sınırları içinde mi kontrol edilir. */
 const REGION_BOUNDS = { latMin:40.3, latMax:42.2, lonMin:27.0, lonMax:42.0 };
 const RegionModule={
   textMap:{ "Batı":"Batı Karadeniz", "Orta":"Orta Karadeniz", "Doğu":"Doğu Karadeniz" },
@@ -420,9 +538,6 @@ const App={
     select.value=this.currentDateOffset;
     select.onchange=()=>this.updateForecast();
   },
-  /* Arama önerileri artık sadece metin değil, koordinatlarıyla birlikte saklanıyor.
-     Böylece kullanıcı bir öneriye tıkladığında "Ara" butonu geocoding'i tekrar
-     sorgulayıp farklı (yanlış) bir sonuç döndürmüyor. */
   suggestionMap:{},
   bindSearchSuggestions(){
     const input=document.getElementById('locationInput');
@@ -491,7 +606,15 @@ const App={
   }
 };
 
-/* === Data === */
+/* === Data ===
+   İSTAVRİT DÜZELTMESİ: önceki veri sadece "Sonbahar/Kış" mevsimlerini ve
+   dar bir sıcaklık aralığını (deniz 10–18°C, hava 8–18°C) kabul ediyordu.
+   Yaz aylarında (deniz ~22–25°C, hava ~28–32°C) bu üç bileşen — mevsim,
+   deniz sıcaklığı, hava sıcaklığı, toplam ağırlığın 49 puanı — sıfıra
+   düşüyor ve şafak/alacakaranlık/gece zaman uyumu doğru olsa bile genel
+   skor düşük çıkıyordu. İstavrit Karadeniz'de pratikte yıl boyu tutulan bir
+   tür olduğundan mevsim "Tüm yıl" olarak, sıcaklık aralıkları da gerçekçi
+   şekilde genişletildi. */
 const DataModule={
   fishes:[
     { name:"Levrek", regions:["Batı","Orta","Doğu"], seasons:["Kış","İlkbahar"], seaTemp:[9,18], airTemp:[5,18], windRange:[5,25], wave:[0.4,1.4], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"ALACAKARANLIK_GECE", prefersRain:true, takim:`Spinning 2.7–3.0 m (10–30 g), PE 1.0–1.2, FC 0.28–0.35.`, yem:`Canlı yemlik, fileto, minnow/silikon/jig.` },
@@ -499,7 +622,7 @@ const DataModule={
     { name:"Eşkina", regions:["Batı","Orta","Doğu"], seasons:["Kış","Tüm yıl"], seaTemp:[14,21], airTemp:[8,18], windRange:[0,15], wave:[0,0.5], pressure:"low", moon:["Dolunay"], time:"GECE", prefersRain:true, takim:`Dip 0.35–0.45; 60–120 g; iğne #2–#1/0.`, yem:`Teke, karides; kalamar, istavrit fileto.` },
     { name:"Granyoz", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[20,27], airTemp:[22,34], windRange:[0,18], wave:[0.3,1.0], pressure:"stable", moon:["Dolunay"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Ağır jig 40–80 g; PE 1.5–2.0.`, yem:`Canlı küçük balık; kalamar; metal/silikon.` },
     { name:"İzmarit", regions:["Batı","Orta","Doğu"], seasons:["İlkbahar","Yaz"], seaTemp:[15,24], airTemp:[14,24], windRange:[0,12], wave:[0,0.7], pressure:"low", moon:["Yeni Ay"], time:"GÜNDÜZ", prefersRain:false, takim:`Şamandıra/LRF UL‑L; iğne #8–#10.`, yem:`Solucan, mamun, midye; mikro silikon.` },
-    { name:"İstavrit", regions:["Batı","Orta","Doğu"], seasons:["Sonbahar","Kış"], seaTemp:[10,18], airTemp:[8,18], windRange:[10,28], wave:[0.4,1.4], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"GECE_ALACAKARANLIK", prefersRain:true, takim:`Çapari 7–10’lu; 15–30 g kurşun.`, yem:`Tüyler; mikro silikon; minik hamsi.` },
+    { name:"İstavrit", regions:["Batı","Orta","Doğu"], seasons:["Tüm yıl"], seaTemp:[8,26], airTemp:[5,32], windRange:[10,28], wave:[0.4,1.4], pressure:"low", moon:["Yeni Ay","Dolunay"], time:"GECE_ALACAKARANLIK", prefersRain:true, takim:`Çapari 7–10’lu; 15–30 g kurşun.`, yem:`Tüyler; mikro silikon; minik hamsi.` },
     { name:"Sargoz", regions:["Batı","Orta"], seasons:["İlkbahar","Yaz"], seaTemp:[15,23], airTemp:[15,27], windRange:[0,18], wave:[0,0.8], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Hafif dip/LRF; iğne #4–#6.`, yem:`Mamun, sülünez, midye.` },
     { name:"Karagöz", regions:["Batı","Orta"], seasons:["İlkbahar","Sonbahar"], seaTemp:[15,24], airTemp:[15,28], windRange:[0,15], wave:[0,0.6], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip/şamandıra.`, yem:`Mamun, boru, karides, midye.` },
     { name:"Kefal", regions:["Batı","Orta","Doğu"], seasons:["İlkbahar","Sonbahar"], seaTemp:[12,24], airTemp:[14,24], windRange:[0,15], wave:[0,0.4], pressure:"low", moon:["Dolunay"], time:"GÜNDÜZ", prefersRain:true, takim:`Şamandıra 3.0–3.9 m; iğne #8–#12.`, yem:`Ekmek/hamur; mamun, boru.` },
@@ -514,13 +637,8 @@ const DataModule={
     { name:"Kolyoz", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[14,23], airTemp:[14,24], windRange:[10,28], wave:[0.5,1.2], pressure:"low", moon:["Yeni Ay"], time:"ALACAKARANLIK", prefersRain:false, takim:`Spin metal 20–40 g.`, yem:`Metal/kaşık; minnow.` },
     { name:"Çupra", regions:["Batı","Orta"], seasons:["Yaz","Sonbahar"], seaTemp:[16,25], airTemp:[16,26], windRange:[0,15], wave:[0,0.6], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ", prefersRain:false, takim:`Dip/Şamandıra ML.`, yem:`Kabuklular, midye, karides.` },
     { name:"Mırmır", regions:["Doğu"], seasons:["Yaz","Sonbahar"], seaTemp:[18,26], airTemp:[20,30], windRange:[0,15], wave:[0,0.5], pressure:"stable", moon:["İlk Dördün"], time:"GÜNDÜZ_ALACAKARANLIK", prefersRain:false, takim:`Hafif dip 20–40 g.`, yem:`Boru kurdu, mamun, sülünez.` }
-    /* Not: "Somon" türü kaldırıldı — Karadeniz'de doğal populasyonu bulunmadığı ve
-       regions:[] olması nedeniyle her bölgede yanıltıcı biçimde "nadir tür" olarak
-       listeleniyordu. */
   ],
   getSeason(){ const m=new Date().getMonth()+1; if([12,1,2].includes(m)) return "Kış"; if([3,4,5].includes(m)) return "İlkbahar"; if([6,7,8].includes(m)) return "Yaz"; return "Sonbahar"; },
-  /* Ay evresi hesabı artık tek yerden yapılıyor; önceden getMoonPhase() ve
-     getMoonPhaseEmoji() aynı Julian gün hesabını iki kez tekrarlıyordu. */
   _moonCache:null,
   getMoonData(){
     const todayKey=new Date().toDateString();
@@ -543,14 +661,11 @@ const DataModule={
 };
 
 /* === Skor ===
-   Ağırlıklar toplamı önceden 108 idi (season 20 + time 15 + pressure 8 + moon 8 +
-   rain 8 + seaTemp 20 + airTemp 12 + wave 7 + wind 10) ve Math.min(100,...) ile
-   kırpılıyordu; bu da üst uçta birçok türün "tavan yapıp" birbirinden
-   ayrılamamasına yol açıyordu. Ağırlıklar artık tam olarak 100'e toplanacak
-   şekilde yeniden dağıtıldı. */
+   Ağırlıklar toplamı tam 100'e denk gelecek şekilde dağıtıldı (önceden 108
+   idi ve Math.min(100,...) ile kırpılıp üst uçta ayrım gücü kayboluyordu). */
 const ScoringModule={
   weights:{ season:18, time:14, pressure:7, moon:7, rain:7, seaTemp:19, airTemp:12, wave:7, wind:9 },
-  color(sc){ return sc>90?'#2563eb':sc>70?'#16a34a':sc>50?'#f59e0b':'#dc2626'; },
+  color(sc){ return sc>90?'var(--amber)':sc>70?'var(--teal)':sc>50?'var(--brass)':'var(--coral)'; },
   gradedRangeScore(v,min,max,p,tol=0.15){ if(max<=min||p===0||v==null) return 0; const r=max-min, s=min+tol*r, e=max-tol*r; if(v>=s&&v<=e) return p; if((v>=min-tol*r&&v<s)||(v>e&&v<=max+tol*r)) return p*0.5; return 0; },
   calculate(f,env,label){
     const w=this.weights;
@@ -578,10 +693,7 @@ async function fetchWithTimeout(url,ms=10000,signal){
   try{ return await fetch(url,{signal:ctrl.signal}); } finally{ clearTimeout(id); }
 }
 
-/* === Basit önbellek yönetimi ===
-   Önceden localStorage'daki "wx:" anahtarları hiç temizlenmiyordu ve zamanla
-   kota sınırına takılabilirdi. Artık her önbellek kaydı bir zaman damgasıyla
-   saklanıyor ve belirli bir yaşın üzerindekiler başlangıçta temizleniyor. */
+/* === Basit önbellek yönetimi === */
 const CacheModule={
   maxAgeMs: 3*24*60*60*1000, // 3 gün
   cleanup(){
@@ -689,15 +801,12 @@ const MapModule={
     if(popupText) this.marker.bindPopup(escapeHTML(popupText)).openPopup();
     this.marker.on('dragend',evt=>{ const p=evt.target.getLatLng(); App.setLocation(p.lat,p.lng,"Seçilen Konum"); });
   },
-  /* Zaten çözülmüş (geocoding'e tekrar gerek olmayan) bir konumu uygula.
-     Datalist önerisinden seçim yapıldığında kullanılır. */
   applyResolvedLocation(lat,lon,name){
     this.map.setView([lat,lon],11);
     this.setMarker({lat,lng:lon}, name);
     App.setLocation(lat,lon,name);
   },
   async searchLocation(q){
-    // Önceki aramayı iptal et: art arda hızlı aramalarda yarış durumunu (race condition) önler.
     if(this.searchAbortCtrl) this.searchAbortCtrl.abort();
     const ctrl=new AbortController(); this.searchAbortCtrl=ctrl;
     const btn=document.getElementById('searchButton');
@@ -722,36 +831,42 @@ const UIModule={
   activeIndex:0,
   inRegionFishes(){ return DataModule.fishes.filter(f=>f.regions?.includes(App.currentRegion)); },
   outRegionFishes(){ return DataModule.fishes.filter(f=>Array.isArray(f.regions)&&f.regions.length&&!f.regions.includes(App.currentRegion)); },
+  getNowSlotIndex(){
+    if(App.currentDateOffset!==0) return -1;
+    const h=new Date().getHours();
+    return APIModule.slots.findIndex(s=>s.hours.includes(h));
+  },
   renderCards(){
     const cards=document.getElementById('cards'); cards.innerHTML='';
     const inRegion=this.inRegionFishes();
     const frag=document.createDocumentFragment();
+    const nowIdx=this.getNowSlotIndex();
 
     APIModule.slots.forEach((slot,i)=>{
       if(!slot.env) return;
       const ranked=inRegion.map(f=>({fish:f,score:ScoringModule.calculate(f,slot.env,slot.timeLabel)})).sort((a,b)=>b.score-a.score);
-      const card=document.createElement('div'); card.className='card'; card.setAttribute('role','button'); card.setAttribute('tabindex','0');
+      const card=document.createElement('div'); card.className='card'+(i===nowIdx?' card--now':''); card.setAttribute('role','button'); card.setAttribute('tabindex','0');
 
       if(!ranked.length){
         card.setAttribute('aria-label',`${slot.t} için uygun tür yok`);
-        card.innerHTML=`<b>${slot.t}</b><div class="small" style="margin-top:8px">Bu bölgede uygun tür bulunamadı.</div>`;
+        card.innerHTML=`<div class="card-head"><span class="slot-label mono">${slot.t}</span></div><div class="card-empty">Bu bölgede uygun tür bulunamadı.</div>`;
         card.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); card.click(); } });
         frag.appendChild(card); return;
       }
 
       const best=ranked[0];
       const windLabel=`${slot.env.wind} km/sa ${slot.env.windDir}`, windTitle=`${slot.env.wind} km/sa – ${slot.env.windDirLong}`;
-      const top3=ranked.slice(0,3).map((x,idx)=>{ const p=idx===0?"🥇":idx===1?"🥈":"🥉"; return `<span class="chip" style="border-color:${ScoringModule.color(x.score)}">${p} ${x.fish.name} ${x.score}%</span>`; }).join(' ');
-      const fishBadge=fishIcons(best.score);
-      card.setAttribute('aria-label',`${slot.t} için en iyi balık: ${best.fish.name} ${best.score}%`);
+      const top3=ranked.slice(0,3).map((x,idx)=>{ const p=idx===0?"🥇":idx===1?"🥈":"🥉"; return `<span class="chip" style="border-color:${ScoringModule.color(x.score)}">${p} ${escapeHTML(x.fish.name)} ${x.score}%</span>`; }).join('');
+      card.setAttribute('aria-label',`${slot.t} için en iyi balık: ${best.fish.name} yüzde ${best.score}`);
       card.innerHTML=`
-        <b>${slot.t}</b>
-        <div style="margin:8px 0; font-weight:700">${fishBadge?fishBadge+' ':''}${best.fish.name} — <span style="color:${ScoringModule.color(best.score)}">${best.score}%</span></div>
-        <div class="env">
-          🌡️ ${slot.env.airTemp}°C • 🌊 ${slot.env.wave} m<br>
-          <span title="${escapeHTML(windTitle)}">🌬️ ${escapeHTML(windLabel)}</span> • ⛅ ${escapeHTML(slot.env.weather)}
+        <div class="card-head">
+          <span class="slot-label mono">${slot.t}</span>
+          <span class="slot-daypart">${escapeHTML(slot.timeLabel)}</span>
         </div>
-        <div class="top3 small">${top3}</div>`;
+        <div class="dial-wrap">${renderDial(best.score)}</div>
+        <div class="fish-name"><span class="badge">${fishIcons(best.score)}</span>${escapeHTML(best.fish.name)}</div>
+        <div class="env-mini">🌡️ <b>${slot.env.airTemp}°C</b> · 🌊 <b>${slot.env.wave} m</b><br><span title="${escapeHTML(windTitle)}">🌬️ ${escapeHTML(windLabel)}</span> · ${escapeHTML(slot.env.weather)}</div>
+        <div class="top3">${top3}</div>`;
       card.onclick=()=>this.openModal(i);
       card.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); card.click(); } });
       frag.appendChild(card);
@@ -776,63 +891,69 @@ const UIModule={
     });
   },
   renderSlot(slot){
-    document.getElementById('slotTitle').textContent=`${slot.t} – ${slot.timeLabel} (${slot.env.selectedDate}) • ${RegionModule.textMap[App.currentRegion]}`;
+    document.getElementById('slotTitle').textContent=`${slot.t} · ${slot.timeLabel} · ${slot.env.selectedDate} · ${RegionModule.textMap[App.currentRegion]}`;
     const envGrid=document.getElementById('envGrid');
     const windLabel=`${slot.env.wind} km/sa ${slot.env.windDir}`, windTitle=`${slot.env.wind} km/sa – ${slot.env.windDirLong}`;
-    envGrid.innerHTML=`
-      <div class="env-box">⛅<br>${escapeHTML(slot.env.weather)}</div>
-      <div class="env-box">🌧️ Yağış<br>${slot.env.precipProbability}%</div>
-      <div class="env-box">🌅 Doğum<br>${slot.env.sunrise}</div>
-      <div class="env-box">🌇 Batım<br>${slot.env.sunset}</div>
-      <div class="env-box">🌡️ Hava<br>${slot.env.airTemp}°C</div>
-      <div class="env-box" title="${escapeHTML(windTitle)}">🌬️ Rüzgar<br>${escapeHTML(windLabel)}</div>
-      <div class="env-box">🌊 Dalga<br>${slot.env.wave} m</div>
-      <div class="env-box">🌡️ Deniz<br>${slot.env.seaTemp}°C</div>
-      <div class="env-box">🌀 Basınç<br>${slot.env.pressure} hPa</div>`;
+    const envItem=(label,val)=>`<div class="env-box"><span class="env-label">${label}</span><span class="env-val">${val}</span></div>`;
+    envGrid.innerHTML=
+      envItem('Hava',escapeHTML(slot.env.weather)) +
+      envItem('Yağış',slot.env.precipProbability+'%') +
+      envItem('Doğum',slot.env.sunrise) +
+      envItem('Batım',slot.env.sunset) +
+      envItem('Sıcaklık',slot.env.airTemp+'°C') +
+      `<div class="env-box" title="${escapeHTML(windTitle)}"><span class="env-label">Rüzgar</span><span class="env-val">${escapeHTML(windLabel)}</span></div>` +
+      envItem('Dalga',slot.env.wave+' m') +
+      envItem('Deniz',slot.env.seaTemp+'°C') +
+      envItem('Basınç',slot.env.pressure+' hPa');
+
     const fishList=document.getElementById('fishList');
     const inRegion=this.inRegionFishes().map(f=>({fish:f,score:ScoringModule.calculate(f,slot.env,slot.timeLabel)})).sort((a,b)=>b.score-a.score);
     const outRegion=this.outRegionFishes().map(f=>({fish:f,score:ScoringModule.calculate(f,slot.env,slot.timeLabel)})).sort((a,b)=>b.score-a.score);
+    const moon=DataModule.getMoonData();
 
     let html='';
     if(!inRegion.length){ html+=`<div class="small">Bu bölge için uygun tür bulunamadı.</div>`; }
     else{
-      html+=inRegion.map(x=>{
+      html+=inRegion.map((x,idx)=>{
         let comment="", c="";
-        if(x.score>=90){ comment="Bol av bekleniyor! Harika koşullar 🐟🐟🐟"; c="#16a34a";}
-        else if(x.score>=70){ comment="İyi av ihtimali yüksek. Şansın açık olsun! 🐟🐟"; c="#16a34a";}
-        else if(x.score>=50){ comment="Orta düzeyde aktivite. Sabırlı ol 🐟"; c="#f59e0b";}
-        else if(x.score>=30){ comment="Zayıf aktivite. Zor olabilir, ama şansını dene"; c="#f59e0b";}
-        else { comment="Çok düşük ihtimal. Bugün başka balıklara bak"; c="#dc2626";}
+        if(x.score>=90){ comment="Bol av bekleniyor! Harika koşullar 🐟🐟🐟"; c="var(--teal)";}
+        else if(x.score>=70){ comment="İyi av ihtimali yüksek. Şansın açık olsun! 🐟🐟"; c="var(--teal)";}
+        else if(x.score>=50){ comment="Orta düzeyde aktivite. Sabırlı ol 🐟"; c="var(--brass)";}
+        else if(x.score>=30){ comment="Zayıf aktivite. Zor olabilir, ama şansını dene"; c="var(--brass)";}
+        else { comment="Çok düşük ihtimal. Bugün başka balıklara bak"; c="var(--coral)";}
         const heavyHint=(slot.env.wave>1.2||slot.env.wind>25)? `<div class="small">💡 Koşullar zor (dalga/rüzgar yüksek). Daha <b>ağır takım</b> ve <b>daha kalın misina</b> tercih edebilirsin.</div>` : "";
+        const openAttr = idx===0 ? ' open' : '';
         return `
           <div class="fish">
-            <div class="fish-head" onclick="this.nextElementSibling.classList.toggle('open')" role="button" aria-label="${x.fish.name} detaylarını aç">
-              <b>${fishIcons(x.score)} ${x.fish.name} — <span style="color:${ScoringModule.color(x.score)}">${x.score}%</span></b>
+            <div class="fish-head" onclick="this.nextElementSibling.classList.toggle('open')" role="button" tabindex="0" aria-label="${escapeHTML(x.fish.name)} detaylarını aç" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+              <span>${fishIcons(x.score)} ${escapeHTML(x.fish.name)}</span>
+              <span class="fh-score" style="color:${ScoringModule.color(x.score)}">${x.score}%</span>
             </div>
-            <div class="detail">
+            <div class="detail${openAttr}">
               <div class="bar"><div style="width:${x.score}%;background:${ScoringModule.color(x.score)}"></div></div>
               <div class="av-comment" style="color:${c}">${escapeHTML(comment)}</div>
-              <div class="takim-yem"><span class="takim-icon">🎣👤</span> <span class="small">${escapeHTML(x.fish.takim)}</span></div>
+              <div class="takim-yem"><span class="takim-icon">🎣</span> <span class="small">${escapeHTML(x.fish.takim)}</span></div>
               <div class="takim-yem"><span class="takim-icon">🪱</span> <span class="small">${escapeHTML(x.fish.yem)}</span></div>
               ${heavyHint}
-              <div class="small">${DataModule.getMoonPhaseEmoji()} Ay evresi: ${DataModule.getMoonPhase()}</div>
+              <div class="moon-line">${moon.emoji} Ay evresi: ${escapeHTML(moon.text)}</div>
             </div>
           </div>`;
       }).join('');
     }
     if(outRegion.length){
-      html+=`<div class="small" style="margin-top:12px;opacity:.8">Bölgede nadir / uygun olmayan türler:</div>`;
+      html+=`<div class="small" style="margin-top:14px;opacity:.75">Bölgede nadir / uygun olmayan türler:</div>`;
       html+=outRegion.map(x=>`
         <div class="fish" style="opacity:.7">
-          <div class="fish-head" onclick="this.nextElementSibling.classList.toggle('open')" role="button" aria-label="${x.fish.name} detaylarını aç">
-            <b>${x.fish.name} — <span style="color:${ScoringModule.color(x.score)}">${x.score}%</span></b>
+          <div class="fish-head" onclick="this.nextElementSibling.classList.toggle('open')" role="button" tabindex="0" aria-label="${escapeHTML(x.fish.name)} detaylarını aç" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+            <span>${escapeHTML(x.fish.name)}</span>
+            <span class="fh-score" style="color:${ScoringModule.color(x.score)}">${x.score}%</span>
           </div>
           <div class="detail">
             <div class="nadir">Bu bölgede nadir</div>
             <div class="bar"><div style="width:${x.score}%;background:${ScoringModule.color(x.score)}"></div></div>
-            <div class="takim-yem"><span class="takim-icon">🎣👤</span> <span class="small">${escapeHTML(x.fish.takim)}</span></div>
+            <div class="takim-yem"><span class="takim-icon">🎣</span> <span class="small">${escapeHTML(x.fish.takim)}</span></div>
             <div class="takim-yem"><span class="takim-icon">🪱</span> <span class="small">${escapeHTML(x.fish.yem)}</span></div>
-            <div class="small">${DataModule.getMoonPhaseEmoji()} Ay evresi: ${DataModule.getMoonPhase()}</div>
+            <div class="moon-line">${moon.emoji} Ay evresi: ${escapeHTML(moon.text)}</div>
           </div>
         </div>`).join('');
     }
@@ -862,6 +983,7 @@ function setupModalInteractions(){
   const closeBtn=document.getElementById('modalClose');
   modal.addEventListener('click',(e)=>{ if(e.target.id==='modal') UIModule.closeModal(); });
   closeBtn.addEventListener('click',()=>UIModule.closeModal());
+  closeBtn.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); UIModule.closeModal(); } });
   sheet.addEventListener('keydown',(e)=>{
     if(e.key!=='Tab') return;
     const focusable=sheet.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
@@ -881,17 +1003,14 @@ function setupRegionInline(){
       if(MapModule?.map?.flyTo){ MapModule.map.flyTo([lat,lon],12,{duration:0.6}); } else { MapModule.map.setView([lat,lon],12); }
       if(!MapModule.marker){ MapModule.setMarker({lat,lng:lon}, name); }
       else{ MapModule.marker.setLatLng([lat,lon]); MapModule.marker.bindPopup(escapeHTML(name)).openPopup(); }
-      regionEl.style.boxShadow="0 0 0 6px rgba(37,99,235,0.25)"; setTimeout(()=> regionEl.style.boxShadow="",400);
+      regionEl.style.boxShadow="0 0 0 5px rgba(217,160,90,.28)"; setTimeout(()=> regionEl.style.boxShadow="",400);
     }catch(e){ showToast("Mevcut konuma gidilemedi.","error"); }
   };
   regionEl.addEventListener('click',goToCurrent);
   regionEl.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goToCurrent(); } });
 }
 
-/* === Sol geolokasyon ikonu: konum al ===
-   Önceden bu ikonda tabindex yoktu; klavye kullanıcıları hiç odaklanamıyor ve
-   dolayısıyla konum alma özelliğine klavyeyle erişemiyordu. Artık tabindex="0"
-   ve Enter/Space desteğiyle diğer kontrollerle tutarlı hale getirildi. */
+/* === Sol geolokasyon ikonu: konum al === */
 function setupRegionLocateIcon(){
   const icon=document.getElementById('regionLocateIcon'); if(!icon) return;
   const doLocate=()=>{
@@ -935,7 +1054,7 @@ document.getElementById('shareButton').addEventListener('click',()=>{
   const panelUrl=window.location.href;
   const activeIdx=UIModule.activeIndex??0; const activeSlot=APIModule.slots[activeIdx]; const env=activeSlot?.env||{};
   const windLabel=`${env?.wind??'—'} km/sa ${env?.windDirLong||env?.windDir||''}`, waveLabel=`${env?.wave??'—'} m`;
-  const text=`🎣 Balık Avı Tahmini
+  const text=`🎣 Balık Sonarı Tahmini
 
 📍 ${location}
 📅 ${formattedDate}
@@ -945,7 +1064,7 @@ document.getElementById('shareButton').addEventListener('click',()=>{
 
 Detaylı tahmin için paneli ziyaret et!
 🔗 ${panelUrl}`;
-  if(navigator.share){ navigator.share({title:'Balık Avı Tahmini', text}).catch(()=> navigator.clipboard.writeText(text).then(()=>showToast("Metin panoya kopyalandı!")) ); }
+  if(navigator.share){ navigator.share({title:'Balık Sonarı Tahmini', text}).catch(()=> navigator.clipboard.writeText(text).then(()=>showToast("Metin panoya kopyalandı!")) ); }
   else{ navigator.clipboard.writeText(text).then(()=>showToast("Metin panoya kopyalandı!")); }
 });
 
